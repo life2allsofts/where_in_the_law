@@ -1,0 +1,119 @@
+# Create a comprehensive .gitignore file
+cat > .gitignore << 'EOF'
+# ================================================
+# FLUTTER/DART SPECIFIC IGNORES
+# ================================================
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# ================================================
+# ANDROID SPECIFIC IGNORES
+# ================================================
+
+# Android Studio build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Gradle build files
+/android/.gradle/
+/android/build/
+/android/local.properties
+
+# Generated files
+/android/generated/
+/android/.idea/
+
+# ================================================
+# IOS SPECIFIC IGNORES
+# ================================================
+
+# Xcode related
+/ios/.generated/
+/ios/Flutter/App.framework/
+/ios/Flutter/Flutter.framework/
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
+/ios/Runner/GeneratedPluginRegistrant.*
+
+# Build products
+/ios/DerivedData/
+/ios/Pods/
+
+# ================================================
+# EDITOR/IDE SPECIFIC IGNORES
+# ================================================
+
+# IntelliJ/Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.code-workspace
+
+# ================================================
+# OPERATING SYSTEM SPECIFIC IGNORES
+# ================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+.directory
+
+# ================================================
+# MISCELLANEOUS
+# ================================================
+
+*.class
+*.log
+*.pyc
+*.swp
+*.swo
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# ================================================
+# EXCEPTIONS (Files that should NOT be ignored)
+# ================================================
+
+!.gitignore
+!README.md
+!LICENSE
+!pubspec.yaml
+!pubspec.lock
+EOF

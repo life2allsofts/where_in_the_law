@@ -1,0 +1,112 @@
+[
+  {
+    "id": "1",
+    "title": "Landlord Withholding Deposit",
+    "searchKeywords": ["rent", "deposit", "landlord", "tenant", "security deposit", "rental", "accommodation"],
+    "category": "Housing",
+    "lawName": "Rent Act",
+    "lawCode": "Act 220",
+    "section": "Section 15(1)",
+    "legalText": "The landlord shall, within six months after the determination of the tenancy, refund to the tenant the amount of any deposit paid by the tenant in respect of the premises, less any amount applied in accordance with the terms of the tenancy agreement.",
+    "plainExplanation": "Your landlord must return your deposit within 6 months after you move out. They can only deduct money for legitimate reasons specified in your rental agreement, like unpaid rent or damages beyond normal wear and tear."
+  },
+  {
+    "id": "2",
+    "title": "Police Arrest Without Warrant",
+    "searchKeywords": ["police", "arrest", "warrant", "rights", "detention", "criminal"],
+    "category": "Rights & Freedoms",
+    "lawName": "Criminal Procedure Code",
+    "lawCode": "Act 30",
+    "section": "Section 10",
+    "legalText": "A police officer may without a warrant arrest any person who has committed a felony, whom he suspects upon reasonable grounds of having committed a felony, or against whom a reasonable complaint has been made or credible information has been received or a reasonable suspicion exists of his having been concerned in a felony.",
+    "plainExplanation": "A police officer can arrest you without a warrant if they have a reasonable suspicion that you have committed a serious crime (a felony). For minor offences, they generally need a warrant from a court."
+  },
+  {
+    "id": "3",
+    "title": "Starting a Business: Sole Proprietorship vs. LLC",
+    "searchKeywords": ["business", "company", "sole proprietorship", "LLC", "limited liability", "register", "enterprise"],
+    "category": "Business",
+    "lawName": "Companies Act",
+    "lawCode": "Act 992",
+    "section": "Sections 6, 17 & 19",
+    "legalText": "Act 992 provides for the incorporation of companies, the regulation of such companies, and for related matters. A company may be formed as a company limited by shares, a company limited by guarantee, or an unlimited company. A sole proprietorship is not a separate legal entity from its owner.",
+    "plainExplanation": "The main difference is liability. A Sole Proprietorship is you acting alone; you are personally responsible for all business debts. A Limited Liability Company (LLC) is a separate legal entity; your personal assets are protected from business debts. The rules for forming each are found in the Companies Act, 2019 (Act 992)."
+  },
+  {
+    "id": "4",
+    "title": "Unfair Dismissal / Termination Without Notice",
+    "searchKeywords": ["employment", "work", "job", "fired", "dismissal", "termination", "notice", "rights", "employer", "employee"],
+    "category": "Employment",
+    "lawName": "Labour Act",
+    "lawCode": "Act 651",
+    "section": "Sections 15, 62 & 63",
+    "legalText": "An employer may terminate a contract of employment without notice if the worker commits a fundamental breach of the contract. For termination by notice, the length of notice must not be less than one month for a contract of three years or more. An unfair termination may give rise to a claim for compensation.",
+    "plainExplanation": "Your employer cannot fire you without a valid reason or without following the correct procedure. The Labour Act specifies the required notice periods and valid reasons for termination. If you are fired unfairly or without proper notice, you can seek redress from the National Labour Commission."
+  },
+  {
+    "id": "5",
+    "title": "Noise Pollution from Neighbors",
+    "searchKeywords": ["noise", "pollution", "neighbor", "music", "loud", "disturbance", "quiet", "environment", "EPA"],
+    "category": "Environment",
+    "lawName": "Environmental Protection Agency Act",
+    "lawCode": "Act 490",
+    "section": "Sections 2 & 12",
+    "legalText": "The Agency may prescribe standards and guidelines relating to the pollution of the environment... including controls of noise and vibration. Additionally, local government by-laws often contain specific provisions regarding noise nuisances, especially during 'quiet hours' (typically from 10:00 pm to 6:00 am).",
+    "plainExplanation": "Excessive noise, especially at night, is regulated by the EPA Act and, more commonly, by the by-laws of your local Assembly (e.g., your Municipal or District Assembly). You can report persistent noise pollution to your local Assembly office or the EPA."
+  },
+  {
+    "id": "6",
+    "title": "Faulty Goods & Refund Rights",
+    "searchKeywords": ["consumer", "rights", "faulty", "goods", "refund", "return", "warranty", "phone", "electronics", "shop", "purchase"],
+    "category": "Consumer Rights",
+    "lawName": "Sale of Goods Act & Consumer Protection Act",
+    "lawCode": "Act 137 & Act 869",
+    "section": "Sale of Goods Act S.13; Consumer Protection Act S.6",
+    "legalText": "The Sale of Goods Act implies a condition that goods sold are of merchantable quality and fit for their purpose. The Consumer Protection Act provides that a consumer has a right to return unsafe or defective goods and choose between a refund, repair, or replacement.",
+    "plainExplanation": "If an item you buy is faulty or breaks soon after purchase without misuse, you have a right to a remedy. The shop must offer you a refund, repair, or replacement. Your rights are protected under both the older Sale of Goods Act and the newer Consumer Protection Act."
+  },
+  {
+    "id": "7",
+    "title": "Right to Basic Education",
+    "searchKeywords": ["education", "school", "child", "right", "free", "basic", "constitution"],
+    "category": "Rights & Freedoms",
+    "lawName": "The Constitution",
+    "lawCode": "1992 Constitution",
+    "section": "Article 25(1)(a)",
+    "legalText": "All persons shall have the right to equal educational opportunities and facilities and with a view to achieving the full realization of that right- (a) basic education shall be free, compulsory and available to all;",
+    "plainExplanation": "The Constitution guarantees every Ghanaian child the right to free and compulsory basic education. This means no child should be denied access to a public basic school due to an inability to pay fees."
+  },
+  {
+    "id": "8",
+    "title": "Right to Vote",
+    "searchKeywords": ["vote", "election", "right", "register", "polling station", "EC", "electoral commission"],
+    "category": "Rights & Freedoms",
+    "lawName": "The Constitution",
+    "lawCode": "1992 Constitution",
+    "section": "Article 42",
+    "legalText": "Every citizen of Ghana of eighteen years of age or above and of sound mind has the right to vote and is entitled to be registered as a voter for the purposes of public elections and referenda.",
+    "plainExplanation": "If you are a Ghanaian citizen, 18 years or older, and of sound mind, you have a constitutional right to register and vote in all public elections. This cannot be taken away from you without due process."
+  },
+  {
+    "id": "9",
+    "title": "Right to Information (RTI)",
+    "searchKeywords": ["information", "right", "request", "public officer", "government", "public institution", "RTI"],
+    "category": "Rights & Freedoms",
+    "lawName": "Right to Information Act",
+    "lawCode": "Act 989",
+    "section": "Section 1 & 18",
+    "legalText": "The object of this Act is to provide for the implementation of the right to information held by a public institution... to foster a culture of transparency and accountability in public affairs. A person may request for information from a public institution in writing.",
+    "plainExplanation": "You have a right to request and receive information from any public institution in Ghana. You must make a written request, and the institution is required by law to provide the information within a specified time frame, unless it falls under a specific exemption."
+  },
+  {
+    "id": "10",
+    "title": "Unlawful Demotion at Work",
+    "searchKeywords": ["work", "demotion", "employment", "rights", "employer", "labour", "commission"],
+    "category": "Employment",
+    "lawName": "Labour Act",
+    "lawCode": "Act 651",
+    "section": "Section 10 & 63(b)",
+    "legalText": "An employer shall not make a significant change in the status of a worker... without giving the worker prior notice. A significant change includes a change to a lower grade or status. A worker who is subjected to an unfair labour practice may present a complaint to the National Labour Commission.",
+    "plainExplanation": "Your employer cannot significantly change your job status (like demoting you) without prior notice and a valid reason related to your conduct or capacity. If this happens unfairly, it is considered an unfair labour practice, and you can file a complaint with the National Labour Commission."
+  }
+]
