@@ -3,6 +3,7 @@ import 'screens/home_screen.dart';
 import 'screens/law_detail_screen.dart'; // ADD THIS IMPORT
 import 'data/law_data.dart';
 import 'models/law_model.dart';
+import 'screens/categories_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -45,12 +46,15 @@ class MyApp extends StatelessWidget {
       ),
       // ADD THESE ROUTES:
       routes: {
-        '/law_detail': (context) {
-          // Get the Law object passed as arguments
-          final law = ModalRoute.of(context)!.settings.arguments as Law;
-          return LawDetailScreen(law: law);
-        },
-      },
+  '/law_detail': (context) {
+    final law = ModalRoute.of(context)!.settings.arguments as Law;
+    return LawDetailScreen(law: law);
+  },
+  '/categories': (context) {
+    final laws = ModalRoute.of(context)!.settings.arguments as List<Law>;
+    return CategoriesScreen(laws: laws);
+  },
+},
     );
   }
 }
