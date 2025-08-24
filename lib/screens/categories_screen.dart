@@ -18,6 +18,46 @@ class CategoriesScreen extends StatelessWidget {
     return laws.where((law) => law.category == category).length;
   }
 
+  // Helper function to get category color
+  Color _getCategoryColor(String category) {
+    final colors = {
+      'Housing': Color(0xFF8E44AD), // Purple
+      'Rights & Freedoms': Color(0xFF3498DB), // Blue
+      'Business': Color(0xFF2ECC71), // Green
+      'Employment': Color(0xFFE67E22), // Orange
+      'Environment': Color(0xFF1ABC9C), // Teal
+      'Consumer Rights': Color(0xFFE74C3C), // Red
+      'Education': Color(0xFF9B59B6), // Deep Purple
+      'Health': Color(0xFFE91E63), // Pink
+      'Family & Personal': Color(0xFF795548), // Brown
+      'Justice & Legal Aid': Color(0xFF607D8B), // Blue Grey
+      'Property & Housing': Color(0xFF8E44AD), // Purple (same as Housing)
+      'Transport': Color(0xFF009688), // Teal
+      'Technology & Communication': Color(0xFF3F51B5), // Indigo
+    };
+    return colors[category] ?? Color(0xFF7F8C8D); // Default gray
+  }
+
+  // Helper function to get category icon
+  IconData _getCategoryIcon(String category) {
+    final icons = {
+      'Housing': Icons.home,
+      'Rights & Freedoms': Icons.gavel,
+      'Business': Icons.business,
+      'Employment': Icons.work,
+      'Environment': Icons.eco,
+      'Consumer Rights': Icons.shopping_cart,
+      'Education': Icons.school,
+      'Health': Icons.local_hospital,
+      'Family & Personal': Icons.family_restroom,
+      'Justice & Legal Aid': Icons.balance,
+      'Property & Housing': Icons.home_work,
+      'Transport': Icons.directions_car,
+      'Technology & Communication': Icons.phone_iphone,
+    };
+    return icons[category] ?? Icons.category;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,31 +178,5 @@ class CategoriesScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  // Helper function to get category color
-  Color _getCategoryColor(String category) {
-    final colors = {
-      'Housing': Color(0xFF8E44AD),
-      'Rights & Freedoms': Color(0xFF3498DB),
-      'Business': Color(0xFF2ECC71),
-      'Employment': Color(0xFFE67E22),
-      'Environment': Color(0xFF1ABC9C),
-      'Consumer Rights': Color(0xFFE74C3C),
-    };
-    return colors[category] ?? Color(0xFF7F8C8D);
-  }
-
-  // Helper function to get category icon
-  IconData _getCategoryIcon(String category) {
-    final icons = {
-      'Housing': Icons.home,
-      'Rights & Freedoms': Icons.gavel,
-      'Business': Icons.business,
-      'Employment': Icons.work,
-      'Environment': Icons.eco,
-      'Consumer Rights': Icons.shopping_cart,
-    };
-    return icons[category] ?? Icons.category;
   }
 }

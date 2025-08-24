@@ -20,6 +20,8 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   flutter_staggered_animations: ^1.0.0
+  shared_preferences: ^2.5.3
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -37,5 +39,21 @@ flutter:
     - family: NotoSans
       fonts:
         - asset: assets/fonts/NotoSans-Regular.ttf
+
+
+# Flutter Launcher Icons configuration (moved to root level)
+flutter_launcher_icons:
+  android: true
+  ios: true
+  windows:
+    generate: true
+  macos: 
+    generate: true
+  linux:
+    generate: true
+  web:
+    generate: true
+  image_path: "assets/icon/icon.png"
+  remove_alpha_ios: true
 
 

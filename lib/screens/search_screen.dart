@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/law_model.dart';
 import 'package:where_in_the_law/models/widgets/law_card.dart';
-
+import 'package:where_in_the_law/models/widgets/filter_dialog.dart';
 
 class SearchScreen extends StatefulWidget {
   final List<Law> allLaws;
@@ -13,22 +13,50 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  late List<Law> _filteredLaws;
   final TextEditingController _searchController = TextEditingController();
-  List<Law> _filteredLaws = [];
+  List<String> _selectedCategories = [];
+
+  List<String> get _allCategories {
+    return widget.allLaws.map((law) => law.category).toSet().toList()..sort();
+  }
 
   void _filterLaws(String query) {
     setState(() {
-      if (query.isEmpty) {
+      if (query.isEmpty && _selectedCategories.isEmpty) {
         _filteredLaws = [];
       } else {
         _filteredLaws = widget.allLaws.where((law) {
-          return law.title.toLowerCase().contains(query.toLowerCase()) ||
+          final matchesText = query.isEmpty || 
+              law.title.toLowerCase().contains(query.toLowerCase()) ||
               law.searchKeywords.any((keyword) => 
                   keyword.toLowerCase().contains(query.toLowerCase())) ||
-              law.category.toLowerCase().contains(query.toLowerCase());
+              law.plainExplanation.toLowerCase().contains(query.toLowerCase());
+
+          final matchesCategory = _selectedCategories.isEmpty || 
+              _selectedCategories.contains(law.category);
+
+          return matchesText && matchesCategory;
         }).toList();
       }
     });
+  }
+
+  Future<void> _showFilterDialog() async {
+    final selectedCategories = await showDialog<List<String>>(
+      context: context,
+      builder: (context) => FilterDialog(
+        allCategories: _allCategories,
+        selectedCategories: _selectedCategories,
+      ),
+    );
+
+    if (selectedCategories != null) {
+      setState(() {
+        _selectedCategories = selectedCategories;
+        _filterLaws(_searchController.text);
+      });
+    }
   }
 
   @override
@@ -40,51 +68,95 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
- appBar: AppBar(
-  title: Container(
-    decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.2),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: TextField(
-      controller: _searchController,
-      decoration: InputDecoration(
-        hintText: 'Search laws...',
-        border: InputBorder.none,
-        hintStyle: TextStyle(color: Colors.white70),
-        prefixIcon: Icon(Icons.search, color: Colors.white),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16),
-      ),
-      style: TextStyle(color: Colors.white), // White text for visibility
-      autofocus: true,
-      onChanged: _filterLaws,
-    ),
-  ),
-  backgroundColor: Color(0xFF3498DB), // Blue
-  iconTheme: IconThemeData(color: Colors.white),
-  actions: [
-    IconButton(
-      icon: Icon(Icons.clear, color: Colors.white),
-      onPressed: () {
-        _searchController.clear();
-        _filterLaws('');
-      },
-    ),
-  ],
-),
-      body: _filteredLaws.isEmpty
-          ? const Center(
-              child: Text(
-                'No laws found. Try different keywords.',
-                style: TextStyle(fontSize: 16),
-              ),
-            )
-          : ListView.builder(
-              itemCount: _filteredLaws.length,
-              itemBuilder: (context, index) {
-                return LawCard(law: _filteredLaws[index]);
+      appBar: AppBar(
+        title: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Search laws...',
+            border: InputBorder.none,
+            hintStyle: TextStyle(color: Colors.white70),
+            prefixIcon: Icon(Icons.search, color: Colors.white),
+          ),
+          style: TextStyle(color: Colors.white),
+          autofocus: true,
+          onChanged: _filterLaws,
+        ),
+        backgroundColor: Color(0xFF3498DB),
+        iconTheme: IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.filter_list, color: Colors.white),
+            onPressed: _showFilterDialog,
+          ),
+          if (_searchController.text.isNotEmpty || _selectedCategories.isNotEmpty)
+            IconButton(
+              icon: Icon(Icons.clear, color: Colors.white),
+              onPressed: () {
+                _searchController.clear();
+                setState(() {
+                  _selectedCategories = [];
+                  _filteredLaws = [];
+                });
               },
             ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Filter chips for selected categories
+          if (_selectedCategories.isNotEmpty)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.grey[100],
+              child: Wrap(
+                spacing: 8,
+                children: _selectedCategories.map((category) {
+                  return Chip(
+                    label: Text(category),
+                    onDeleted: () {
+                      setState(() {
+                        _selectedCategories.remove(category);
+                        _filterLaws(_searchController.text);
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          // Results
+          Expanded(
+            child: _filteredLaws.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Color(0xFF7F8C8D),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          _searchController.text.isEmpty && _selectedCategories.isEmpty
+                              ? 'Start typing to search laws'
+                              : 'No laws found matching your criteria',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF7F8C8D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _filteredLaws.length,
+                    itemBuilder: (context, index) {
+                      return LawCard(law: _filteredLaws[index]);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
