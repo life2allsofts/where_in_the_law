@@ -8,7 +8,7 @@ class Law {
   final String section;
   final String legalText;
   final String plainExplanation;
-  bool isFavorite; // NEW: Favorite state
+  bool isFavorite;
 
   Law({
     required this.id,
@@ -20,34 +20,52 @@ class Law {
     required this.section,
     required this.legalText,
     required this.plainExplanation,
-    this.isFavorite = false, // Default to not favorite
+    this.isFavorite = false,
   });
 
   factory Law.fromJson(Map<String, dynamic> json) {
     return Law(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      searchKeywords: List<String>.from(json['searchKeywords'] ?? []),
-      category: json['category'] ?? 'General',
-      lawName: json['lawName'] ?? '',
-      lawCode: json['lawCode'] ?? '',
-      section: json['section'] ?? '',
-      legalText: json['legalText'] ?? '',
-      plainExplanation: json['plainExplanation'] ?? '',
+      id: _safeString(json['id']),
+      title: _safeString(json['title']),
+      searchKeywords: _convertToStringList(json['searchKeywords']),
+      category: _safeString(json['category']),
+      lawName: _safeString(json['lawName']),
+      lawCode: _safeString(json['lawCode']),
+      section: _safeString(json['section']),
+      legalText: _safeString(json['legalText']),
+      plainExplanation: _safeString(json['plainExplanation']),
       isFavorite: json['isFavorite'] ?? false,
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'searchKeywords': searchKeywords,
-        'category': category,
-        'lawName': lawName,
-        'lawCode': lawCode,
-        'section': section,
-        'legalText': legalText,
-        'plainExplanation': plainExplanation,
-        'isFavorite': isFavorite,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'searchKeywords': searchKeywords,
+      'category': category,
+      'lawName': lawName,
+      'lawCode': lawCode,
+      'section': section,
+      'legalText': legalText,
+      'plainExplanation': plainExplanation,
+      'isFavorite': isFavorite,
+    };
+  }
+
+  // Helper methods to handle type conversion
+  static String _safeString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is int || value is double) return value.toString();
+    return value.toString();
+  }
+
+  static List<String> _convertToStringList(dynamic value) {
+    if (value == null) return [];
+    if (value is List) {
+      return value.map((item) => _safeString(item)).toList();
+    }
+    return [];
+  }
 }
