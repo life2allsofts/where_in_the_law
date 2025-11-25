@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "120410408525",
+    "project_id": "where-in-the-law-bf730",
+    "storage_bucket": "where-in-the-law-bf730.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:120410408525:android:fb689d67858838f9f33e04",
+        "android_client_info": {
+          "package_name": "com.life2allsofts.where_in_the_law"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDg06QJWQ2S8oX0YuPYx3-OmUIASZXBXE4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

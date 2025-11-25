@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import '../models/law_model.dart';
 import 'package:where_in_the_law/models/widgets/law_card.dart';
 import 'search_screen.dart'; 
-import 'categories_screen.dart'; // We'll create this
+import 'categories_screen.dart';
 import 'favorites_screen.dart';
+import '../services/ad_service.dart'; // ADD THIS IMPORT
+
 
 class HomeScreen extends StatefulWidget {
   final List<Law> laws;
@@ -17,6 +20,25 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedView = 'all'; // 'all' or 'categories'
   String? _selectedCategory; // Track selected category
+
+  @override
+  void initState() {
+    super.initState();
+    // Load banner ad after the screen is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AdService.loadBannerAd(
+        Platform.isAndroid 
+          ? 'ca-app-pub-4334052584109954/4511342998' // Android test ID
+          : 'ca-app-pub-4334052584109954/7924792638' // iOS test ID
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    AdService.dispose();
+    super.dispose();
+  }
 
   List<Law> get _filteredLaws {
     if (_selectedView == 'all' || _selectedCategory == null) {
@@ -252,6 +274,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         return LawCard(law: _filteredLaws[index]);
                       },
                     ),
+            ),
+            // AdMob Banner Ad - ADD THIS SECTION
+            Container(
+              color: Colors.transparent,
+              width: double.infinity,
+              height: 50, // Standard banner height
+              child: AdService.getBannerAd(),
             ),
           ],
         ),

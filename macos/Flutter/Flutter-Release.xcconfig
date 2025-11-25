@@ -1,2 +1,15 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
-#include "ephemeral/Flutter-Generated.xcconfig"
+#include "Generated.xcconfig"
+
+
+
+
+# Include CocoaPods config
+# This path is relative to the project directory
+# Make sure it exists: ios/Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig
+# If not, run ⁠ pod install ⁠ first
+# Include it like this:
+# (Use quotes if needed)
+
+# For Release.xcconfig
+#include "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
