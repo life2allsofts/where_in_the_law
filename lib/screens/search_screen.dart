@@ -1,7 +1,13 @@
+// screens/search_screen.dart
+// ignore_for_file: avoid_print, library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import '../models/law_model.dart';
 import 'package:where_in_the_law/models/widgets/law_card.dart';
 import 'package:where_in_the_law/models/widgets/filter_dialog.dart';
+import 'law_detail_screen.dart';
+import '../services/ad_service.dart';
 
 class SearchScreen extends StatefulWidget {
   final List<Law> allLaws;
@@ -16,6 +22,83 @@ class _SearchScreenState extends State<SearchScreen> {
   late List<Law> _filteredLaws;
   final TextEditingController _searchController = TextEditingController();
   List<String> _selectedCategories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredLaws = widget.allLaws;
+    
+    AdService().addListener(_onAdChanged);
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSearchAd();
+    });
+  }
+
+  void _loadSearchAd() {
+    print('🔄 SearchScreen: Loading SEARCH banner ad');
+    AdService.loadSearchBannerAd(
+      Platform.isAndroid 
+        ? 'ca-app-pub-4334052584109954/4511342998'
+        : 'ca-app-pub-4334052584109954/7924792638'
+    );
+  }
+
+  void _onAdChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleFilterButton() {
+    AdService.showInterstitialAd(
+      screenName: 'SearchScreen',
+      action: 'filter_button',
+    );
+    _showFilterDialog();
+  }
+
+  void _handleClearButton() {
+    AdService.showInterstitialAd(
+      screenName: 'SearchScreen',
+      action: 'clear_button',
+    );
+    _searchController.clear();
+    setState(() {
+      _selectedCategories = [];
+      _filteredLaws = [];
+    });
+  }
+
+  void _handleSearchResultTap(Law law) {
+    AdService.showInterstitialAd(
+      screenName: 'SearchScreen',
+      action: 'search_result_tap',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LawDetailScreen(law: law),
+      ),
+    );
+  }
+
+  void _handleCategoryChipDelete(String category) {
+    AdService.showInterstitialAd(
+      screenName: 'SearchScreen',
+      action: 'category_chip_delete',
+    );
+    setState(() {
+      _selectedCategories.remove(category);
+      _filterLaws(_searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    AdService().removeListener(_onAdChanged);
+    super.dispose();
+  }
 
   List<String> get _allCategories {
     return widget.allLaws.map((law) => law.category).toSet().toList()..sort();
@@ -60,12 +143,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _filteredLaws = widget.allLaws;
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -86,23 +163,24 @@ class _SearchScreenState extends State<SearchScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list, color: Colors.white),
-            onPressed: _showFilterDialog,
+            onPressed: _handleFilterButton,
           ),
           if (_searchController.text.isNotEmpty || _selectedCategories.isNotEmpty)
             IconButton(
               icon: Icon(Icons.clear, color: Colors.white),
-              onPressed: () {
-                _searchController.clear();
-                setState(() {
-                  _selectedCategories = [];
-                  _filteredLaws = [];
-                });
-              },
+              onPressed: _handleClearButton,
             ),
         ],
       ),
       body: Column(
         children: [
+          // SEARCH Banner Ad at TOP
+          Container(
+            color: Colors.transparent,
+            width: double.infinity,
+            height: 50,
+            child: AdService.getSearchBannerAd(),
+          ),
           // Filter chips for selected categories
           if (_selectedCategories.isNotEmpty)
             Container(
@@ -113,12 +191,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 children: _selectedCategories.map((category) {
                   return Chip(
                     label: Text(category),
-                    onDeleted: () {
-                      setState(() {
-                        _selectedCategories.remove(category);
-                        _filterLaws(_searchController.text);
-                      });
-                    },
+                    onDeleted: () => _handleCategoryChipDelete(category),
                   );
                 }).toList(),
               ),
@@ -151,7 +224,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 : ListView.builder(
                     itemCount: _filteredLaws.length,
                     itemBuilder: (context, index) {
-                      return LawCard(law: _filteredLaws[index]);
+                      return GestureDetector(
+                        onTap: () => _handleSearchResultTap(_filteredLaws[index]),
+                        child: LawCard(law: _filteredLaws[index]),
+                      );
                     },
                   ),
           ),

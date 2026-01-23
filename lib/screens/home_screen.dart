@@ -1,3 +1,6 @@
+// screens/home_screen.dart
+// ignore_for_file: avoid_print, library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import '../models/law_model.dart';
@@ -5,8 +8,8 @@ import 'package:where_in_the_law/models/widgets/law_card.dart';
 import 'search_screen.dart'; 
 import 'categories_screen.dart';
 import 'favorites_screen.dart';
-import '../services/ad_service.dart'; // ADD THIS IMPORT
-
+import 'law_detail_screen.dart';
+import '../services/ad_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final List<Law> laws;
@@ -18,25 +21,40 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _selectedView = 'all'; // 'all' or 'categories'
-  String? _selectedCategory; // Track selected category
+  String _selectedView = 'all';
+  String? _selectedCategory;
 
   @override
   void initState() {
     super.initState();
-    // Load banner ad after the screen is built
+    // Listen to ad service changes
+    AdService().addListener(_onAdChanged);
+    
+    // Load ad after screen is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      AdService.loadBannerAd(
-        Platform.isAndroid 
-          ? 'ca-app-pub-4334052584109954/4511342998' // Android test ID
-          : 'ca-app-pub-4334052584109954/7924792638' // iOS test ID
-      );
+      _loadHomeAd();
     });
+  }
+
+  void _loadHomeAd() {
+    print('🔄 HomeScreen: Loading HOME banner ad');
+    AdService.loadHomeBannerAd(
+      Platform.isAndroid 
+        ? 'ca-app-pub-4334052584109954/4511342998'
+        : 'ca-app-pub-4334052584109954/7924792638'
+    );
+  }
+
+  void _onAdChanged() {
+    print('🔄 HomeScreen: Ad state changed, updating UI');
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
-    AdService.dispose();
+    AdService().removeListener(_onAdChanged);
     super.dispose();
   }
 
@@ -63,24 +81,74 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Helper function to get category color
+  void _handleCategorySelection() {
+    // Call this when "Categories" button is pressed
+    AdService.showInterstitialAd(
+      screenName: 'HomeScreen',
+      action: 'categories_button',
+    );
+    _showCategoriesScreen();
+  }
+
+  void _handleFavoriteTap() {
+    // Call this when favorite icon is pressed
+    AdService.showInterstitialAd(
+      screenName: 'HomeScreen',
+      action: 'favorites_button',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FavoritesScreen(),
+      ),
+    );
+  }
+
+  void _handleSearchTap() {
+    // Call this when search icon is pressed
+    AdService.showInterstitialAd(
+      screenName: 'HomeScreen',
+      action: 'search_button',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchScreen(allLaws: widget.laws),
+      ),
+    );
+  }
+
+  void _handleLawCardTap(Law law) {
+    // Call this when a law card is tapped
+    AdService.showInterstitialAd(
+      screenName: 'HomeScreen',
+      action: 'law_card_tap',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LawDetailScreen(law: law),
+      ),
+    );
+  }
+
   Color _getCategoryColor(String category) {
     final colors = {
-      'Housing': Color(0xFF8E44AD), // Purple
-      'Rights & Freedoms': Color(0xFF3498DB), // Blue
-      'Business': Color(0xFF2ECC71), // Green
-      'Employment': Color(0xFFE67E22), // Orange
-      'Environment': Color(0xFF1ABC9C), // Teal
-      'Consumer Rights': Color(0xFFE74C3C), // Red
-      'Education': Color(0xFF9B59B6), // Deep Purple
-      'Health': Color(0xFFE91E63), // Pink
-      'Family & Personal': Color(0xFF795548), // Brown
-      'Justice & Legal Aid': Color(0xFF607D8B), // Blue Grey
-      'Property & Housing': Color(0xFF8E44AD), // Purple (same as Housing)
-      'Transport': Color(0xFF009688), // Teal
-      'Technology & Communication': Color(0xFF3F51B5), // Indigo
+      'Housing': Color(0xFF8E44AD),
+      'Rights & Freedoms': Color(0xFF3498DB),
+      'Business': Color(0xFF2ECC71),
+      'Employment': Color(0xFFE67E22),
+      'Environment': Color(0xFF1ABC9C),
+      'Consumer Rights': Color(0xFFE74C3C),
+      'Education': Color(0xFF9B59B6),
+      'Health': Color(0xFFE91E63),
+      'Family & Personal': Color(0xFF795548),
+      'Justice & Legal Aid': Color(0xFF607D8B),
+      'Property & Housing': Color(0xFF8E44AD),
+      'Transport': Color(0xFF009688),
+      'Technology & Communication': Color(0xFF3F51B5),
     };
-    return colors[category] ?? Color(0xFF7F8C8D); // Default gray
+    return colors[category] ?? Color(0xFF7F8C8D);
   }
 
   @override
@@ -100,25 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.favorite, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FavoritesScreen(),
-                ),
-              );
-            },
+            onPressed: _handleFavoriteTap,
           ),
           IconButton(
             icon: Icon(Icons.search, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SearchScreen(allLaws: widget.laws),
-                ),
-              );
-            },
+            onPressed: _handleSearchTap,
           ),
         ],
       ),
@@ -132,6 +186,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Column(
           children: [
+            // HOME Banner Ad at TOP
+            AdService.getHomeBannerAd(),
+            
             // Two Main Buttons - All & Categories
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -175,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Categories Button
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _showCategoriesScreen,
+                      onPressed: _handleCategorySelection,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _selectedView == 'categories' 
                             ? Color(0xFF8E44AD) 
@@ -271,16 +328,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   : ListView.builder(
                       itemCount: _filteredLaws.length,
                       itemBuilder: (context, index) {
-                        return LawCard(law: _filteredLaws[index]);
+                        return GestureDetector(
+                          onTap: () => _handleLawCardTap(_filteredLaws[index]),
+                          child: LawCard(law: _filteredLaws[index]),
+                        );
                       },
                     ),
-            ),
-            // AdMob Banner Ad - ADD THIS SECTION
-            Container(
-              color: Colors.transparent,
-              width: double.infinity,
-              height: 50, // Standard banner height
-              child: AdService.getBannerAd(),
             ),
           ],
         ),

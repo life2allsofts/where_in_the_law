@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.whereInTheLaw</string>
+	<string>com.life2allsofts.where-in-the-law</string>
 	<key>PROJECT_ID</key>
 	<string>where-in-the-law-bf730</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:120410408525:ios:93a2d9df91f289d4f33e04</string>
+	<string>1:120410408525:ios:5c400c24766aa5d4f33e04</string>
 </dict>
 </plist>
