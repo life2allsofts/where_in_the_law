@@ -2,7 +2,7 @@ import org.gradle.api.tasks.Delete
 
 buildscript {
     // Use double quotes for strings in .kts files
-    val kotlinVersion = "1.7.10"
+    val kotlinVersion = "2.1.0"
     
     repositories {
         google()

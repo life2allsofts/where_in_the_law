@@ -1,20 +1,25 @@
-// main.dart - FINAL PRODUCTION VERSION
-// ignore_for_file: avoid_print
+// main.dart - FINAL VERSION with Terms/Tutorial flow
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:where_in_the_law/services/ad_service.dart';
+import 'package:where_in_the_law/services/shared_prefs_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/law_detail_screen.dart';
+import 'screens/terms_screen.dart';
+import 'screens/tutorial_screen.dart';
 import 'data/law_data.dart';
 import 'models/law_model.dart';
 import 'screens/categories_screen.dart';
+import 'screens/faq_screen.dart';
+import 'screens/privacy_policy_screen.dart';
 import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase (handles duplicates gracefully)
+  // Initialize Firebase
   await _initializeFirebase();
   
   // Initialize AdMob
@@ -37,7 +42,6 @@ Future<void> _initializeFirebase() async {
           storageBucket: "where-in-the-law-bf730.appspot.com",
         ),
       );
-      print('✅ Firebase initialized for iOS');
     } else if (Platform.isAndroid) {
       await Firebase.initializeApp(
         options: const FirebaseOptions(
@@ -49,26 +53,19 @@ Future<void> _initializeFirebase() async {
           storageBucket: "where-in-the-law-bf730.appspot.com",
         ),
       );
-      print('✅ Firebase initialized for Android');
     } else {
       await Firebase.initializeApp();
-      print('✅ Firebase initialized');
     }
   } catch (e) {
-    // If it's a duplicate app error, Firebase is already working
-    // This is common on Android hot restarts
     final errorMessage = e.toString();
     
     if (errorMessage.contains('duplicate-app') || 
         errorMessage.contains('already exists')) {
-      print('✅ Firebase already initialized');
+      // Firebase already initialized
     } else if (errorMessage.contains('MissingPluginException')) {
-      // Firebase not available on this platform (e.g., web without config)
-      print('⚠️ Firebase not configured for this platform');
+      // Firebase not available on this platform
     } else {
       // Real initialization error
-      print('❌ Firebase initialization error: $e');
-      // App can still run without Firebase
     }
   }
 }
@@ -98,79 +95,13 @@ class MyApp extends StatelessWidget {
         future: LawData.loadLaws(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              backgroundColor: Color(0xFFF5F7FA),
-              body: Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3498DB)),
-                ),
-              ),
-            );
+            return const LoadingScreen();
           } else if (snapshot.hasError) {
-            return Scaffold(
-              backgroundColor: Color(0xFFF5F7FA),
-              appBar: AppBar(
-                title: const Text('Error'),
-                backgroundColor: Color(0xFF3498DB),
-              ),
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Color(0xFFE74C3C),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Failed to load laws',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Please check your connection and try again',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF7F8C8D),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MyApp(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF3498DB),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 12,
-                          ),
-                        ),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+            return ErrorScreen(error: snapshot.error.toString());
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return HomeScreen(laws: []);
+            return const HomeScreen(laws: []);
           } else {
-            return HomeScreen(laws: snapshot.data!);
+            return FirstLaunchFlow(laws: snapshot.data!);
           }
         },
       ),
@@ -183,7 +114,180 @@ class MyApp extends StatelessWidget {
           final laws = ModalRoute.of(context)!.settings.arguments as List<Law>;
           return CategoriesScreen(laws: laws);
         },
+        '/tutorial': (context) => const TutorialScreen(),
+        '/faq': (context) => const FAQScreen(),
+        '/privacy': (context) => const PrivacyPolicyScreen(),
+        '/terms': (context) => const TermsScreen(),
       },
+    );
+  }
+}
+
+class FirstLaunchFlow extends StatefulWidget {
+  final List<Law> laws;
+
+  const FirstLaunchFlow({super.key, required this.laws});
+
+  @override
+  State<FirstLaunchFlow> createState() => _FirstLaunchFlowState();
+}
+
+class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
+  bool _isChecking = true;
+  bool _needsTerms = false;
+  bool _needsTutorial = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstLaunch();
+  }
+
+  Future<void> _checkFirstLaunch() async {
+    final hasAgreedToTerms = await SharedPrefsService.hasAgreedToTerms;
+    final hasSeenTutorial = await SharedPrefsService.hasSeenTutorial;
+    
+    setState(() {
+      _needsTerms = !hasAgreedToTerms;
+      _needsTutorial = !hasSeenTutorial;
+      _isChecking = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isChecking) {
+      return const LoadingScreen();
+    }
+    
+    // Show Terms first if needed
+    if (_needsTerms) {
+      return TermsScreen(
+        onAgree: () async {
+          await SharedPrefsService.setHasAgreedToTerms(true);
+          setState(() {
+            _needsTerms = false;
+          });
+        },
+      );
+    }
+    
+    // Show Tutorial if needed (after terms)
+    if (_needsTutorial) {
+      return TutorialScreen(
+        onComplete: () async {
+          await SharedPrefsService.setHasSeenTutorial(true);
+          // Go directly to HomeScreen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(laws: widget.laws),
+            ),
+          );
+        },
+      );
+    }
+    
+    // Otherwise, go to HomeScreen
+    return HomeScreen(laws: widget.laws);
+  }
+}
+
+class LoadingScreen extends StatelessWidget {
+  const LoadingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF3498DB)),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Loading Ghana Law Library...',
+              style: TextStyle(
+                fontSize: 16,
+                color: const Color(0xFF7F8C8D),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ErrorScreen extends StatelessWidget {
+  final String error;
+
+  const ErrorScreen({super.key, required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      appBar: AppBar(
+        title: const Text('Error'),
+        backgroundColor: const Color(0xFF3498DB),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: const Color(0xFFE74C3C),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Failed to load laws',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF2C3E50),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                error,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: const Color(0xFF7F8C8D),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MyApp(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3498DB),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

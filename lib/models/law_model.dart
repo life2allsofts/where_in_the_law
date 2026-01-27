@@ -38,6 +38,8 @@ class Law {
     );
   }
 
+  get plainEnglish => null;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
