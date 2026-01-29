@@ -1,6 +1,5 @@
-// main.dart - FINAL VERSION with Terms/Tutorial flow
+// main.dart - UPDATED with Game Integration
 // ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:where_in_the_law/services/ad_service.dart';
@@ -9,6 +8,9 @@ import 'screens/home_screen.dart';
 import 'screens/law_detail_screen.dart';
 import 'screens/terms_screen.dart';
 import 'screens/tutorial_screen.dart';
+import 'screens/game_home_screen.dart'; // NEW: Game home screen
+import 'screens/quiz_screen.dart'; // NEW: Quiz screen
+import 'screens/quiz_result_screen.dart'; // NEW: Quiz result screen
 import 'data/law_data.dart';
 import 'models/law_model.dart';
 import 'screens/categories_screen.dart';
@@ -118,6 +120,25 @@ class MyApp extends StatelessWidget {
         '/faq': (context) => const FAQScreen(),
         '/privacy': (context) => const PrivacyPolicyScreen(),
         '/terms': (context) => const TermsScreen(),
+        '/game': (context) => const GameHomeScreen(), // NEW: Game route
+        '/quiz': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return QuizScreen(
+            difficulty: args['difficulty'],
+            isDailyChallenge: args['isDailyChallenge'],
+          );
+        },
+        '/quiz_results': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return QuizResultScreen(
+            score: args['score'],
+            totalQuestions: args['totalQuestions'],
+            difficulty: args['difficulty'],
+            isDailyChallenge: args['isDailyChallenge'],
+            coinsEarned: args['coinsEarned'],
+            xpEarned: args['xpEarned'],
+          );
+        },
       },
     );
   }

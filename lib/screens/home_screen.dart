@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io' show Platform;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:where_in_the_law/screens/game_home_screen.dart';
 import '../models/law_model.dart';
 import 'package:where_in_the_law/models/widgets/law_card.dart';
 import 'search_screen.dart'; 
@@ -328,6 +329,26 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.search, color: Colors.white),
             onPressed: _handleSearchTap,
           ),
+//Game Button
+          IconButton(
+  icon: const Icon(Icons.sports_esports, color: Colors.white),
+  onPressed: () {
+    AdService.showInterstitialAd(
+      screenName: 'HomeScreen',
+      action: 'game_button',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const GameHomeScreen(),
+      ),
+    );
+  },
+  tooltip: 'Play Law Master Game',
+),
+
+
+        
           // 3-dot menu button - USING SIMPLE APPROACH LIKE YOUR WORKING APP
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),

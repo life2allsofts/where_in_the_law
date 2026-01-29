@@ -1,4 +1,4 @@
-// services/ad_service.dart
+// lib/services/ad_service.dart
 // ignore_for_file: avoid_print
 
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -13,11 +13,19 @@ class AdService with ChangeNotifier {
   static BannerAd? _favoritesBannerAd;
   static BannerAd? _lawDetailBannerAd;
   static BannerAd? _searchBannerAd;
+  static BannerAd? _gameBannerAd; // NEW: Game screen banner
   
   // Interstitial Ad
   static InterstitialAd? _interstitialAd;
   static bool isInterstitialReady = false;
   static bool _isInterstitialLoading = false;
+  
+  // Rewarded Ad - IMPORTANT: Use REWARDED not Rewarded Interstitial
+  static RewardedAd? _rewardedAd;
+  static bool isRewardedAdReady = false;
+  static bool _isRewardedAdLoading = false;
+  static Function()? _currentRewardCallback;
+  static String? _currentRewardType;
   
   // Counter for interstitial frequency (show every 3-5 actions)
   static int _actionCounter = 0;
@@ -29,6 +37,7 @@ class AdService with ChangeNotifier {
   static bool isFavoritesBannerReady = false;
   static bool isLawDetailBannerReady = false;
   static bool isSearchBannerReady = false;
+  static bool isGameBannerReady = false; // NEW
   
   static bool _isAdMobInitialized = false;
   
@@ -43,16 +52,20 @@ class AdService with ChangeNotifier {
       _isAdMobInitialized = true;
       print('✅ AdMob initialized successfully');
       
-      // Preload interstitial ad
+      // Preload interstitial and rewarded ads
       _loadInterstitialAd();
+      _loadRewardedAd();
       
       if (kDebugMode) {
         // Add test device IDs for debugging
         List<String> testDeviceIds = [];
         
-        // You can add your test device IDs here
-        // For Android: Use the device ID shown in logcat
-        // For iOS: Use the device ID from settings
+        // Test IDs for development
+        if (Platform.isAndroid) {
+          testDeviceIds.add('YOUR_ANDROID_TEST_DEVICE_ID'); // Add from logcat
+        } else if (Platform.isIOS) {
+          testDeviceIds.add('YOUR_IOS_TEST_DEVICE_ID'); // Add from settings
+        }
         
         final configuration = RequestConfiguration(
           testDeviceIds: testDeviceIds,
@@ -62,6 +75,139 @@ class AdService with ChangeNotifier {
     } catch (e) {
       print('❌ AdMob initialization failed: $e');
       _isAdMobInitialized = false;
+    }
+  }
+
+  // ========== REWARDED ADS (For Game Hints/Power-ups) ==========
+  static void _loadRewardedAd() {
+    if (!_isAdMobInitialized) {
+      print('⚠️ AdMob not initialized yet');
+      return;
+    }
+    
+    if (_isRewardedAdLoading) {
+      print('⚠️ Rewarded ad is already loading');
+      return;
+    }
+    
+    print('🔄 Loading REWARDED ad for game hints');
+    _isRewardedAdLoading = true;
+    
+    RewardedAd.load(
+      adUnitId: Platform.isAndroid 
+        ? 'ca-app-pub-4334052584109954/7256789749' // Android rewarded
+        : 'ca-app-pub-4334052584109954/7256789749', // iOS rewarded - use same or different
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedAd = ad;
+          isRewardedAdReady = true;
+          _isRewardedAdLoading = false;
+          print('✅ Rewarded ad loaded successfully for game hints');
+          
+          // Set up full screen content callback
+          ad.fullScreenContentCallback = FullScreenContentCallback(
+            onAdShowedFullScreenContent: (ad) {
+              print('🔄 Rewarded ad showing');
+            },
+            onAdDismissedFullScreenContent: (ad) {
+              print('✅ Rewarded ad dismissed');
+              ad.dispose();
+              isRewardedAdReady = false;
+              _rewardedAd = null;
+              // Load next rewarded ad after a delay
+              Future.delayed(const Duration(seconds: 2), () {
+                _loadRewardedAd();
+              });
+            },
+            onAdFailedToShowFullScreenContent: (ad, error) {
+              print('❌ Rewarded ad failed to show: $error');
+              ad.dispose();
+              isRewardedAdReady = false;
+              _rewardedAd = null;
+              // Retry after delay
+              Future.delayed(const Duration(seconds: 5), () {
+                _loadRewardedAd();
+              });
+            },
+          );
+        },
+        onAdFailedToLoad: (error) {
+          print('❌ Rewarded ad failed to load: $error');
+          print('📱 Platform: ${Platform.isAndroid ? 'Android' : 'iOS'}');
+          
+          isRewardedAdReady = false;
+          _isRewardedAdLoading = false;
+          _rewardedAd = null;
+          
+          // Retry after delay
+          Future.delayed(const Duration(seconds: 30), () {
+            _loadRewardedAd();
+          });
+        },
+      ),
+    );
+  }
+
+  // IMPORTANT: Use RewardedAd.show() NOT RewardedInterstitialAd
+  static void showRewardedAd({
+    required String screenName,
+    required String action,
+    required String rewardType,
+    required VoidCallback onReward,
+  }) {
+    print('🔍 Checking rewarded ad...');
+    print('   Screen: $screenName');
+    print('   Action: $action');
+    print('   Reward Type: $rewardType');
+    print('   isRewardedAdReady: $isRewardedAdReady');
+    
+    if (!isRewardedAdReady || _rewardedAd == null) {
+      print('⚠️ Rewarded ad not ready yet');
+      // Optionally show a message to user
+      return;
+    }
+    
+    try {
+      // Store the callback
+      _currentRewardCallback = onReward;
+      _currentRewardType = rewardType;
+      
+      // Set the reward callback
+      _rewardedAd!.setImmersiveMode(true);
+      
+      // IMPORTANT: This is how you handle the reward
+      _rewardedAd!.show(
+        onUserEarnedReward: (ad, reward) {
+          print('🎁 User earned reward!');
+          print('   Type: ${reward.type}');
+          print('   Amount: ${reward.amount}');
+          print('   Reward Type: $_currentRewardType');
+          
+          // Execute the reward callback
+          if (_currentRewardCallback != null) {
+            _currentRewardCallback!();
+          }
+          
+          // Clear callbacks
+          _currentRewardCallback = null;
+          _currentRewardType = null;
+        },
+      );
+      
+      print('✅ Rewarded ad show() called successfully');
+      
+    } catch (e) {
+      print('❌ Error showing rewarded ad: $e');
+      // Clear callbacks
+      _currentRewardCallback = null;
+      _currentRewardType = null;
+      
+      // Reload rewarded ad
+      isRewardedAdReady = false;
+      _rewardedAd?.dispose();
+      _rewardedAd = null;
+      _loadRewardedAd();
     }
   }
 
@@ -195,6 +341,53 @@ class AdService with ChangeNotifier {
     }
   }
 
+  // ========== GAME BANNER ADS ==========
+  static void loadGameBannerAd(String adUnitId) {
+    if (!_isAdMobInitialized) {
+      print('⚠️ AdMob not initialized yet');
+      return;
+    }
+    
+    if (isGameBannerReady && _gameBannerAd != null) {
+      print('✅ Game banner ad already loaded');
+      return;
+    }
+    
+    _gameBannerAd?.dispose();
+    
+    print('🔄 Loading GAME banner ad: $adUnitId');
+    
+    _gameBannerAd = BannerAd(
+      size: AdSize.banner,
+      adUnitId: adUnitId,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          isGameBannerReady = true;
+          print('✅ Game banner ad loaded successfully');
+          _instance.notifyListeners();
+        },
+        onAdFailedToLoad: (ad, error) {
+          isGameBannerReady = false;
+          _gameBannerAd = null;
+          print('❌ Game banner ad failed to load: $error');
+          _instance.notifyListeners();
+        },
+      ),
+      request: const AdRequest(),
+    )..load();
+  }
+
+  static Widget getGameBannerAd() {
+    if (isGameBannerReady && _gameBannerAd != null) {
+      return SizedBox(
+        width: _gameBannerAd!.size.width.toDouble(),
+        height: _gameBannerAd!.size.height.toDouble(),
+        child: AdWidget(ad: _gameBannerAd!),
+      );
+    }
+    return Container(height: 50, color: Colors.transparent);
+  }
+
   // ========== FORCE SHOW INTERSTITIAL (For Testing) ==========
   static void forceShowInterstitial() {
     if (isInterstitialReady && _interstitialAd != null) {
@@ -206,21 +399,35 @@ class AdService with ChangeNotifier {
     }
   }
 
+  // ========== FORCE SHOW REWARDED (For Testing) ==========
+  static void forceShowRewarded() {
+    if (isRewardedAdReady && _rewardedAd != null) {
+      print('🎯 FORCE showing rewarded ad (testing)');
+      _rewardedAd?.show(onUserEarnedReward: (ad, reward) {
+        print('🎁 Test reward earned: ${reward.amount} ${reward.type}');
+      });
+    } else {
+      print('⚠️ Cannot force show: rewarded not ready');
+    }
+  }
+
   // ========== RESET ACTION COUNTER (For Testing) ==========
   static void resetActionCounter() {
     print('🔄 Resetting action counter from $_actionCounter to 0');
     _actionCounter = 0;
   }
 
-  // ========== GET CURRENT INTERSTITIAL STATUS ==========
-  static Map<String, dynamic> getInterstitialStatus() {
+  // ========== GET CURRENT AD STATUS ==========
+  static Map<String, dynamic> getAdStatus() {
     return {
-      'isReady': isInterstitialReady,
-      'isLoading': _isInterstitialLoading,
+      'interstitialReady': isInterstitialReady,
+      'interstitialLoading': _isInterstitialLoading,
+      'rewardedReady': isRewardedAdReady,
+      'rewardedLoading': _isRewardedAdLoading,
       'actionCounter': _actionCounter,
       'frequency': _interstitialFrequency,
-      'adLoaded': _interstitialAd != null,
-      'actionsNeeded': _interstitialFrequency - _actionCounter,
+      'homeBanner': isHomeBannerReady,
+      'gameBanner': isGameBannerReady,
     };
   }
 
@@ -468,24 +675,33 @@ class AdService with ChangeNotifier {
     _favoritesBannerAd?.dispose();
     _lawDetailBannerAd?.dispose();
     _searchBannerAd?.dispose();
+    _gameBannerAd?.dispose();
     _interstitialAd?.dispose();
+    _rewardedAd?.dispose();
     
     _homeBannerAd = null;
     _categoriesBannerAd = null;
     _favoritesBannerAd = null;
     _lawDetailBannerAd = null;
     _searchBannerAd = null;
+    _gameBannerAd = null;
     _interstitialAd = null;
+    _rewardedAd = null;
     
     isHomeBannerReady = false;
     isCategoriesBannerReady = false;
     isFavoritesBannerReady = false;
     isLawDetailBannerReady = false;
     isSearchBannerReady = false;
+    isGameBannerReady = false;
     isInterstitialReady = false;
+    isRewardedAdReady = false;
     _isInterstitialLoading = false;
+    _isRewardedAdLoading = false;
     
     _actionCounter = 0;
+    _currentRewardCallback = null;
+    _currentRewardType = null;
     
     print('✅ All ads disposed');
     _instance.notifyListeners();
