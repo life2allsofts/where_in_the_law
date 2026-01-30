@@ -39,6 +39,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/law_data.json
+    - assets/game_questions.json
   fonts:
     - family: NotoSans
       fonts:

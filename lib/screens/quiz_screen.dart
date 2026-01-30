@@ -1,6 +1,7 @@
 // screens/quiz_screen.dart
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, avoid_print
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/game_question.dart';
 import '../services/game_service.dart';
@@ -11,7 +12,7 @@ import '../data/game_questions.dart';
 class QuizScreen extends StatefulWidget {
   final String difficulty;
   final bool isDailyChallenge;
-  
+
   const QuizScreen({
     super.key,
     required this.difficulty,
@@ -22,65 +23,144 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateMixin {
-  late List<GameQuestion> _questions;
+class _QuizScreenState extends State<QuizScreen>
+    with SingleTickerProviderStateMixin {
+  List<GameQuestion> _questions = [];
   int _currentQuestionIndex = 0;
   int _score = 0;
   bool _isAnswered = false;
+  bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
   late AnimationController _timerController;
   int _timeLeft = 30;
   bool _usedHint = false;
   List<bool> _hintsUsed = [];
-  
+
   @override
   void initState() {
     super.initState();
-    
-    // Load questions
-    if (widget.isDailyChallenge) {
-      _questions = GameQuestions.getDailyChallenge();
-    } else {
-      _questions = GameQuestions.getQuestionsByDifficulty(widget.difficulty, 10);
-    }
-    
-    // Initialize hints array
-    _hintsUsed = List<bool>.filled(_questions.length, false);
-    
-    // Setup timer
-    _timerController = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: _timeLeft),
-    )..addListener(() {
-        setState(() {
-          _timeLeft = _timerController.duration!.inSeconds - 
-                     (_timerController.value * _timerController.duration!.inSeconds).round();
+
+    // Initialize timer
+    _timerController =
+        AnimationController(
+          vsync: this,
+          duration: Duration(seconds: _timeLeft),
+        )..addListener(() {
+          setState(() {
+            // FIX: Convert to int properly
+            _timeLeft =
+                (_timerController.duration!.inSeconds -
+                        (_timerController.value *
+                            _timerController.duration!.inSeconds))
+                    .toInt();
+          });
         });
-      });
-    
-    _timerController.forward().whenComplete(() {
-      if (!_isAnswered) {
-        _handleTimeOut();
-      }
-    });
+
+    // Load questions asynchronously
+    _loadQuestions();
   }
-  
+
+ Future<void> _loadQuestions() async {
+  try {
+    print('🎮 Loading questions for ${widget.difficulty} mode...');
+
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    List<GameQuestion> questions;
+
+    if (widget.isDailyChallenge) {
+      // Use await since getDailyChallenge is now async
+      questions = await GameQuestions.getDailyChallenge();
+    } else {
+      // Use await since getQuestionsByDifficulty is now async
+      questions = await GameQuestions.getQuestionsByDifficulty(widget.difficulty, 10);
+    }
+
+    if (questions.isEmpty) {
+      throw Exception('No questions available for ${widget.difficulty}');
+    }
+
+    setState(() {
+      _questions = questions;
+      _isLoading = false;
+      // Initialize hints array
+      _hintsUsed = List<bool>.filled(_questions.length, false);
+    });
+
+    print('✅ Loaded ${_questions.length} questions');
+
+    // Start timer after questions are loaded
+    if (mounted) {
+      _timerController.forward().whenComplete(() {
+        if (!_isAnswered && mounted) {
+          _handleTimeOut();
+        }
+      });
+    }
+  } catch (e) {
+    print('❌ Error loading questions: $e');
+
+    // Fallback to sample questions - also need await here
+    try {
+      final fallbackQuestions = await GameQuestions.getQuestionsByDifficulty(
+        widget.difficulty,
+        10,
+      );
+
+      setState(() {
+        _questions = fallbackQuestions; // No need for .cast() anymore
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = 'Using fallback questions: ${e.toString()}';
+        // Initialize hints array
+        _hintsUsed = List<bool>.filled(_questions.length, false);
+      });
+
+      // Start timer with fallback questions
+      if (mounted) {
+        _timerController.forward().whenComplete(() {
+          if (!_isAnswered && mounted) {
+            _handleTimeOut();
+          }
+        });
+      }
+    } catch (fallbackError) {
+      print('❌ Even fallback failed: $fallbackError');
+      
+      // Ultimate fallback - create empty questions
+      setState(() {
+        _questions = [];
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = 'Unable to load questions. Please check your connection and try again.';
+      });
+    }
+  }
+}
+
   @override
   void dispose() {
     _timerController.dispose();
     super.dispose();
   }
-  
+
   void _handleTimeOut() {
+    if (!mounted) return;
+
     setState(() {
       _isAnswered = true;
     });
-    
-    Future.delayed(const Duration(seconds: 2), () {
-      _nextQuestion();
-    });
+
+    // REMOVED automatic navigation - user must click Next
   }
-  
+
   void _handleAnswer(bool isCorrect) {
+    if (!mounted) return;
+
     setState(() {
       _isAnswered = true;
       if (isCorrect) {
@@ -89,29 +169,29 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
         _score += _questions[_currentQuestionIndex].points + timeBonus;
       }
     });
-    
+
     _timerController.stop();
-    
-    Future.delayed(const Duration(seconds: 2), () {
-      _nextQuestion();
-    });
+
+    // REMOVED automatic navigation - user must click Next
   }
-  
+
   void _useHint() async {
     if (_hintsUsed[_currentQuestionIndex]) {
       return;
     }
-    
+
     final userProfile = await GameService.getUserProfile();
     if (userProfile.cediCoins >= 50) {
       userProfile.cediCoins -= 50;
       await GameService.saveUserProfile(userProfile);
-      
-      setState(() {
-        _usedHint = true;
-        _hintsUsed[_currentQuestionIndex] = true;
-      });
-      
+
+      if (mounted) {
+        setState(() {
+          _usedHint = true;
+          _hintsUsed[_currentQuestionIndex] = true;
+        });
+      }
+
       _showSnackBar('Hint used! 50 Cedi Coins deducted.');
     } else {
       // Show rewarded ad for free hint
@@ -119,16 +199,21 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
         screenName: 'QuizScreen',
         action: 'free_hint',
         onReward: () {
-          setState(() {
-            _usedHint = true;
-            _hintsUsed[_currentQuestionIndex] = true;
-          });
-        }, rewardType: '',
+          if (mounted) {
+            setState(() {
+              _usedHint = true;
+              _hintsUsed[_currentQuestionIndex] = true;
+            });
+          }
+        },
+        rewardType: '',
       );
     }
   }
-  
+
   void _nextQuestion() {
+    if (!mounted) return;
+
     if (_currentQuestionIndex < _questions.length - 1) {
       setState(() {
         _currentQuestionIndex++;
@@ -143,26 +228,33 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
       _finishQuiz();
     }
   }
-  
+
   Future<void> _finishQuiz() async {
+    if (!mounted) return;
+
     // Update user profile
     final userProfile = await GameService.getUserProfile();
     userProfile.totalGamesPlayed++;
     userProfile.correctAnswers += _score ~/ 10; // 10 points per correct answer
-    
+
     // Add experience
-    int xpEarned = _score * (widget.difficulty == 'beginner' ? 1 : 
-                         widget.difficulty == 'intermediate' ? 2 : 3);
+    int xpEarned =
+        _score *
+        (widget.difficulty == 'beginner'
+            ? 1
+            : widget.difficulty == 'intermediate'
+            ? 2
+            : 3);
     if (widget.isDailyChallenge) xpEarned *= 2;
-    
+
     userProfile.experience += xpEarned;
-    
+
     // Check level up
-    while (userProfile.experience >= userProfile.experienceToNextLevel) {
-      userProfile.experience -= userProfile.experienceToNextLevel;
+    while (userProfile.experience >= (userProfile.level * 100).toDouble()) {
+      userProfile.experience -= ((userProfile.level * 100).toDouble()).toInt();
       userProfile.level++;
     }
-    
+
     // Add coins
     int coinsEarned = _score * 2;
     if (widget.isDailyChallenge) {
@@ -170,53 +262,65 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
       await GameService.updateStreak();
       userProfile.streakDays = await GameService.getCurrentStreak();
     }
-    
+
     userProfile.cediCoins += coinsEarned;
-    
+
     // Update category scores
     for (var question in _questions) {
       final currentScore = userProfile.categoryScores[question.category] ?? 0;
-      userProfile.categoryScores[question.category] = currentScore + 
-          (_questions.indexOf(question) <= _currentQuestionIndex && 
-           _score > (_questions.indexOf(question) * 10) ? 10 : 0);
+      userProfile.categoryScores[question.category] =
+          currentScore +
+          (_questions.indexOf(question) <= _currentQuestionIndex &&
+                  _score > (_questions.indexOf(question) * 10)
+              ? 10
+              : 0);
     }
-    
+
     await GameService.saveUserProfile(userProfile);
-    
+
     // Show interstitial ad
     AdService.showInterstitialAd(
       screenName: 'QuizScreen',
       action: 'quiz_completed',
     );
-    
+
     // Navigate to results
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => QuizResultScreen(
-          score: _score,
-          totalQuestions: _questions.length,
-          difficulty: widget.difficulty,
-          isDailyChallenge: widget.isDailyChallenge,
-          coinsEarned: coinsEarned,
-          xpEarned: xpEarned,
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QuizResultScreen(
+            score: _score,
+            totalQuestions: _questions.length,
+            difficulty: widget.difficulty,
+            isDailyChallenge: widget.isDailyChallenge,
+            coinsEarned: coinsEarned,
+            xpEarned: xpEarned,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
-  
+
   void _showSnackBar(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
     );
   }
-  
-  Color _getOptionColor(int optionIndex, bool isCorrect, dynamic currentQuestion) {
+
+  void _retryLoading() {
+    _loadQuestions();
+  }
+
+  Color _getOptionColor(
+    int optionIndex,
+    bool isCorrect,
+    dynamic currentQuestion,
+  ) {
     if (!_isAnswered) return Colors.white;
-    
+
     if (isCorrect) {
       return Colors.green.shade100;
     } else if (currentQuestion.options[optionIndex].isCorrect) {
@@ -225,23 +329,121 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
       return Colors.red.shade100;
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.isDailyChallenge
+                ? 'Daily Challenge'
+                : '${widget.difficulty.toUpperCase()} Mode',
+          ),
+          backgroundColor: const Color(0xFF3498DB),
+        ),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFF5F7FA), Color(0xFFC3CFE2)],
+            ),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 20),
+                Text('Loading questions...', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_hasError || _questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.isDailyChallenge
+                ? 'Daily Challenge'
+                : '${widget.difficulty.toUpperCase()} Mode',
+          ),
+          backgroundColor: const Color(0xFF3498DB),
+        ),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFF5F7FA), Color(0xFFC3CFE2)],
+            ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                  const SizedBox(height: 20),
+                  Text(
+                    _hasError
+                        ? 'Error loading questions'
+                        : 'No questions available',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _errorMessage.isNotEmpty
+                        ? _errorMessage
+                        : 'Please try again',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 30),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                    onPressed: _retryLoading,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3498DB),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final currentQuestion = _questions[_currentQuestionIndex];
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isDailyChallenge 
-              ? 'Daily Challenge' 
+          widget.isDailyChallenge
+              ? 'Daily Challenge'
               : '${widget.difficulty.toUpperCase()} Mode',
         ),
         backgroundColor: const Color(0xFF3498DB),
         actions: [
           IconButton(
             icon: Icon(
-              _hintsUsed[_currentQuestionIndex] ? Icons.lightbulb : Icons.lightbulb_outline,
+              _hintsUsed[_currentQuestionIndex]
+                  ? Icons.lightbulb
+                  : Icons.lightbulb_outline,
               color: Colors.white,
             ),
             onPressed: _useHint,
@@ -291,12 +493,18 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: _timeLeft < 10 ? Colors.red : const Color(0xFF3498DB),
+                          color: _timeLeft < 10
+                              ? Colors.red
+                              : const Color(0xFF3498DB),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.timer, color: Colors.white, size: 16),
+                            const Icon(
+                              Icons.timer,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '$_timeLeft',
@@ -319,7 +527,7 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                 ],
               ),
             ),
-            
+
             // Question Card
             Expanded(
               child: SingleChildScrollView(
@@ -343,7 +551,9 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _getCategoryColor(currentQuestion.category),
+                                      color: _getCategoryColor(
+                                        currentQuestion.category,
+                                      ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
@@ -386,9 +596,9 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Options
                       ListView.builder(
                         physics: const NeverScrollableScrollPhysics(),
@@ -397,7 +607,11 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                         itemBuilder: (context, index) {
                           final option = currentQuestion.options[index];
                           return Card(
-                            color: _getOptionColor(index, option.isCorrect, currentQuestion),
+                            color: _getOptionColor(
+                              index,
+                              option.isCorrect,
+                              currentQuestion,
+                            ),
                             elevation: 2,
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
@@ -405,20 +619,25 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                                 option.text,
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
-                                  color: _isAnswered && option.isCorrect 
-                                      ? Colors.green[900] 
+                                  color: _isAnswered && option.isCorrect
+                                      ? Colors.green[900]
                                       : Colors.black,
                                 ),
                               ),
-                              onTap: _isAnswered ? null : () => _handleAnswer(option.isCorrect),
+                              onTap: _isAnswered
+                                  ? null
+                                  : () => _handleAnswer(option.isCorrect),
                               trailing: _isAnswered && option.isCorrect
-                                  ? const Icon(Icons.check_circle, color: Colors.green)
+                                  ? const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                    )
                                   : null,
                             ),
                           );
                         },
                       ),
-                      
+
                       // Hint (if used)
                       if (_usedHint && currentQuestion.explanation.length > 100)
                         Card(
@@ -427,7 +646,9 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                             padding: const EdgeInsets.all(12),
                             child: Text(
                               '💡 Hint: ${currentQuestion.explanation.substring(0, 100)}...',
-                              style: const TextStyle(fontStyle: FontStyle.italic),
+                              style: const TextStyle(
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ),
                         ),
@@ -436,8 +657,8 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
-            
-            // Explanation (after answer)
+
+            // Explanation (after answer) with Next Button
             if (_isAnswered)
               Card(
                 margin: const EdgeInsets.all(16),
@@ -464,11 +685,67 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 16),
+
+                      // Next Question Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.navigate_next),
+                          label: Text(
+                            _currentQuestionIndex < _questions.length - 1
+                                ? 'Next Question'
+                                : 'Finish Quiz',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          onPressed: _nextQuestion,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2ECC71),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(height: 8),
+
+                      // Learn More Button (Optional - stays as before)
                       ElevatedButton.icon(
                         icon: const Icon(Icons.book),
                         label: const Text('Learn More About This Law'),
-                        onPressed: () => _showSnackBar('Feature coming soon!'),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Want to learn more about this law?',
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Search for "${currentQuestion.lawReference}" in the main app.',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              duration: const Duration(seconds: 4),
+                              action: SnackBarAction(
+                                label: 'Go to App',
+                                onPressed: () {
+                                  // Navigate back to main app
+                                  Navigator.popUntil(
+                                    context,
+                                    (route) => route.isFirst,
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3498DB),
                           foregroundColor: Colors.white,
@@ -483,7 +760,7 @@ class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateM
       ),
     );
   }
-  
+
   Color _getCategoryColor(String category) {
     final colors = {
       'Housing': const Color(0xFF8E44AD),

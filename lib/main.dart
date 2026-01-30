@@ -1,17 +1,18 @@
-// main.dart - UPDATED with Game Integration
+// main.dart - UPDATED with AppState
 // ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:where_in_the_law/services/ad_service.dart';
 import 'package:where_in_the_law/services/shared_prefs_service.dart';
+import 'package:where_in_the_law/services/app_state.dart'; // NEW
 import 'screens/home_screen.dart';
 import 'screens/law_detail_screen.dart';
 import 'screens/terms_screen.dart';
 import 'screens/tutorial_screen.dart';
-import 'screens/game_home_screen.dart'; // NEW: Game home screen
-import 'screens/quiz_screen.dart'; // NEW: Quiz screen
-import 'screens/quiz_result_screen.dart'; // NEW: Quiz result screen
-import 'data/law_data.dart';
+import 'screens/game_home_screen.dart';
+import 'screens/quiz_screen.dart';
+import 'screens/quiz_result_screen.dart';
 import 'models/law_model.dart';
 import 'screens/categories_screen.dart';
 import 'screens/faq_screen.dart';
@@ -26,6 +27,11 @@ void main() async {
   
   // Initialize AdMob
   await AdService.initializeAdMob();
+  
+  // Preload laws into AppState
+  WidgetsFlutterBinding.ensureInitialized();
+  final appState = AppState();
+  await appState.getLaws(); // Preload in background
   
   runApp(const MyApp());
 }
@@ -94,7 +100,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: FutureBuilder<List<Law>>(
-        future: LawData.loadLaws(),
+        future: AppState().getLaws(), // Use AppState instead of LawData.loadLaws()
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const LoadingScreen();
@@ -108,6 +114,21 @@ class MyApp extends StatelessWidget {
         },
       ),
       routes: {
+        '/home': (context) {
+          // Get laws from AppState
+          return FutureBuilder<List<Law>>(
+            future: AppState().getLaws(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const LoadingScreen();
+              } else if (snapshot.hasData) {
+                return HomeScreen(laws: snapshot.data!);
+              } else {
+                return const HomeScreen(laws: []);
+              }
+            },
+          );
+        },
         '/law_detail': (context) {
           final law = ModalRoute.of(context)!.settings.arguments as Law;
           return LawDetailScreen(law: law);
@@ -120,7 +141,7 @@ class MyApp extends StatelessWidget {
         '/faq': (context) => const FAQScreen(),
         '/privacy': (context) => const PrivacyPolicyScreen(),
         '/terms': (context) => const TermsScreen(),
-        '/game': (context) => const GameHomeScreen(), // NEW: Game route
+        '/game': (context) => const GameHomeScreen(),
         '/quiz': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return QuizScreen(

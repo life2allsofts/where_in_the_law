@@ -1,9 +1,8 @@
-// screens/quiz_result_screen.dart
+// screens/quiz_result_screen.dart - UPDATED
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
-import 'package:where_in_the_law/screens/quiz_screen.dart';
 import '../services/ad_service.dart';
-import 'game_home_screen.dart';
-import 'home_screen.dart';
 
 class QuizResultScreen extends StatelessWidget {
   final int score;
@@ -182,15 +181,7 @@ class QuizResultScreen extends StatelessWidget {
                           screenName: 'QuizResult',
                           action: 'try_again',
                         );
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => QuizScreen(
-                              difficulty: difficulty,
-                              isDailyChallenge: isDailyChallenge,
-                            ),
-                          ),
-                        );
+                        Navigator.pop(context); // Go back to quiz
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3498DB),
@@ -207,12 +198,10 @@ class QuizResultScreen extends StatelessWidget {
                         screenName: 'QuizResult',
                         action: 'play_another',
                       );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const GameHomeScreen(),
-                        ),
-                      );
+                      // Go back to game home
+                      Navigator.popUntil(context, (route) {
+                        return route.settings.name == '/game' || route.isFirst;
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2ECC71),
@@ -224,13 +213,18 @@ class QuizResultScreen extends StatelessWidget {
                   ElevatedButton.icon(
                     icon: const Icon(Icons.home),
                     label: const Text('Back to Law Library'),
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HomeScreen(laws: []), // Pass your actual laws
-                        ),
-                      );
+                    onPressed: () async {
+                      print('🏠 Navigating back to Law Library...');
+                      
+                      // Method 1: Go all the way back to first screen
+                      Navigator.popUntil(context, (route) => route.isFirst);
+                      
+                      // Method 2: Alternative - navigate to home route
+                      // Navigator.pushNamedAndRemoveUntil(
+                      //   context,
+                      //   '/home',
+                      //   (route) => false,
+                      // );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF8E44AD),

@@ -1,7 +1,7 @@
 // services/game_service.dart
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:where_in_the_law/models/game_question.dart';
+import 'package:where_in_the_law/models/user_game_profile.dart';
 
 
 class GameService {

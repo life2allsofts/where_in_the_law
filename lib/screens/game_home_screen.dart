@@ -1,4 +1,4 @@
-// screens/game_home_screen.dart - COMPLETE with Banner Ads
+// screens/game_home_screen.dart
 // ignore_for_file: avoid_print
 
 import 'package:flutter/foundation.dart';
@@ -24,7 +24,7 @@ class _GameHomeScreenState extends State<GameHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _profileFuture = GameService.getUserProfile() as Future<UserGameProfile>;
+    _profileFuture = GameService.getUserProfile();
     _checkDailyChallenge();
     
     // Load game banner ad after screen is built
