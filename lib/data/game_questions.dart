@@ -40,31 +40,51 @@ class GameQuestions {
   }
   
   // Organize loaded questions by difficulty
-  static void _organizeQuestions(List<GameQuestion> allQuestions) {
-    // Clear existing questions
-    _questionsByDifficulty.clear();
-    
-    // Initialize all difficulty levels
-    _questionsByDifficulty['beginner'] = [];
-    _questionsByDifficulty['intermediate'] = [];
-    _questionsByDifficulty['expert'] = [];
-    
-    // Organize questions by difficulty
-    for (final question in allQuestions) {
-      final difficulty = question.difficulty.toLowerCase();
-      if (_questionsByDifficulty.containsKey(difficulty)) {
-        _questionsByDifficulty[difficulty]!.add(question);
-      } else {
-        // If difficulty not recognized, add to beginner
-        _questionsByDifficulty['beginner']!.add(question);
-      }
+ static void _organizeQuestions(List<GameQuestion> allQuestions) {
+  // Clear existing questions
+  _questionsByDifficulty.clear();
+  
+  // Initialize all difficulty levels
+  _questionsByDifficulty['beginner'] = [];
+  _questionsByDifficulty['intermediate'] = [];
+  _questionsByDifficulty['expert'] = [];
+  
+  // Categorize questions
+  for (final question in allQuestions) {
+    final difficulty = question.difficulty.toLowerCase();
+    if (_questionsByDifficulty.containsKey(difficulty)) {
+      _questionsByDifficulty[difficulty]!.add(question);
+    } else {
+      // If difficulty not recognized, assign based on category
+      final autoDifficulty = _autoAssignDifficulty(question.category);
+      _questionsByDifficulty[autoDifficulty]!.add(question);
     }
-    
-    print('📊 Organized questions:');
-    print('   Beginner: ${_questionsByDifficulty['beginner']!.length}');
-    print('   Intermediate: ${_questionsByDifficulty['intermediate']!.length}');
-    print('   Expert: ${_questionsByDifficulty['expert']!.length}');
   }
+  
+  // Balance the counts (limit to reasonable numbers)
+  const maxPerDifficulty = 300;
+  for (final difficulty in _questionsByDifficulty.keys) {
+    final questions = _questionsByDifficulty[difficulty]!;
+    if (questions.length > maxPerDifficulty) {
+      questions.shuffle();
+      _questionsByDifficulty[difficulty] = questions.take(maxPerDifficulty).toList();
+    }
+  }
+  
+  print('📊 Organized questions (balanced):');
+  print('   Beginner: ${_questionsByDifficulty['beginner']!.length}');
+  print('   Intermediate: ${_questionsByDifficulty['intermediate']!.length}');
+  print('   Expert: ${_questionsByDifficulty['expert']!.length}');
+}
+
+static String _autoAssignDifficulty(String category) {
+  final beginnerCategories = ['Rights & Freedoms', 'Consumer Rights', 'Education'];
+  final expertCategories = ['Justice & Legal Aid', 'Financial Crime', 'Customs'];
+  
+  if (beginnerCategories.contains(category)) return 'beginner';
+  if (expertCategories.contains(category)) return 'expert';
+  return 'intermediate';
+}
   
   // Get questions by difficulty
   static Future<List<GameQuestion>> getQuestionsByDifficulty(String difficulty, [int limit = 10]) async {

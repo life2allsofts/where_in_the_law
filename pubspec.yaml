@@ -40,6 +40,7 @@ flutter:
   assets:
     - assets/law_data.json
     - assets/game_questions.json
+    - assets/game_questions_generated.json
   fonts:
     - family: NotoSans
       fonts:
