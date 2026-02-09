@@ -1,144 +1,126 @@
-// data/law_question_generator.dart - OPTIMIZED VERSION
-// ignore_for_file: avoid_print
+// data/law_question_generator.dart - FINAL FIXED VERSION (NO MORE "GOVERNED BY" PATTERN)
+// ignore_for_file: prefer_final_fields, avoid_print
 
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/services.dart';
 import '../models/game_question.dart';
 
 class LawQuestionGenerator {
+  static Random _random = Random();
+  
+  // Common Ghanaian laws with their sections for plausible wrong answers
+  static final Map<String, List<String>> _commonLawSections = {
+    'Children\'s Act, 1998 (Act 560)': [
+      'Section 2 (Best interests of the child)',
+      'Section 5 (Parental responsibility)',
+      'Section 8 (Right to name and nationality)',
+      'Section 10 (Right to parental care)',
+    ],
+    'Constitution of Ghana 1992': [
+      'Article 12 (Protection of fundamental rights)',
+      'Article 21 (General fundamental freedoms)',
+      'Article 33 (Right to administrative justice)',
+      'Article 125 (Judicial power)',
+    ],
+    'Right to Information Act, 2019 (Act 989)': [
+      'Section 1 (Right to information)',
+      'Section 5 (Information accessible to public)',
+      'Section 18 (Exempt information)',
+      'Section 23 (Review of refusal)',
+    ],
+    'Courts Act, 1993 (Act 459)': [
+      'Section 40 (Open court principle)',
+      'Section 41 (Exclusion of public)',
+      'Section 42 (Reporting of proceedings)',
+      'Section 43 (Photography in court)',
+    ],
+    'Registration of Births and Deaths Act (Act 301)': [
+      'Section 4 (Duty to register birth)',
+      'Section 5 (Registration period)',
+      'Section 6 (Registration by parents)',
+      'Section 10 (Birth certificate)',
+    ],
+    'Education Act, 2008 (Act 778)': [
+      'Section 2 (Right to education)',
+      'Section 17 (School discipline)',
+      'Section 21 (Admission policies)',
+      'Section 25 (School facilities)',
+    ],
+  };
+
   static Future<List<GameQuestion>> generateQuestionsFromLaws() async {
-    print('🔧 Generating optimized questions from law_data.json...');
+    print('🔧 Generating pattern-free questions from law_data.json...');
     
     try {
-      // Load law data
       final String jsonString = await rootBundle.loadString('assets/law_data.json');
       final List<dynamic> lawList = json.decode(jsonString);
       
       final questions = <GameQuestion>[];
       int questionId = 1;
       
-      // Shuffle laws to ensure variety
       final shuffledLaws = List<Map<String, dynamic>>.from(lawList);
       shuffledLaws.shuffle();
       
       for (final law in shuffledLaws) {
-        // Create 1-2 unique question types per law (not all 3)
-        final lawQuestions = _createOptimizedQuestionsFromLaw(law, questionId);
+        final lawQuestions = _createPatternFreeQuestionsFromLaw(law, questionId);
         questions.addAll(lawQuestions);
         questionId += lawQuestions.length;
         
-        // Limit to ~500 questions total for better performance
-        if (questions.length >= 500) {
-          break;
-        }
+        if (questions.length >= 500) break;
       }
       
-      print('✅ Generated ${questions.length} optimized questions from ${shuffledLaws.length} laws');
+      print('✅ Generated ${questions.length} pattern-free questions');
       return questions;
       
     } catch (e, stackTrace) {
-      print('❌ Error generating questions from laws: $e');
-      print('❌ Stack trace: $stackTrace');
+      print('❌ Error: $e\n$stackTrace');
       return [];
     }
   }
   
-  static List<GameQuestion> _createOptimizedQuestionsFromLaw(Map<String, dynamic> law, int startId) {
-  final questions = <GameQuestion>[];
-  final String id = law['id']?.toString() ?? 'unknown';
-  final String title = law['title'] ?? 'Unknown Title';
-  final String category = law['category'] ?? 'General';
-  final String lawName = law['lawName'] ?? 'Unknown Law';
-  final String lawCode = law['lawCode'] ?? '';
-  final String section = law['section'] ?? '';
-  final String plainExplanation = law['plainExplanation'] ?? '';
-  
-  // Get assigned difficulty
-  String difficulty = _determineOptimizedDifficulty(category, title, plainExplanation.length);
-  
-  // Points based on difficulty
-  final points = difficulty == 'beginner' ? 5 : difficulty == 'intermediate' ? 10 : 15;
-  
-  // Select question types with weighted distribution based on difficulty
-  final questionTypes = _selectQuestionTypesForDifficulty(title, plainExplanation, difficulty);
-  
-  for (var type in questionTypes) {
-    switch (type) {
-      case 'direct':
-        questions.add(_createDirectQuestion(id, title, category, lawName, lawCode, 
-          section, plainExplanation, difficulty, points));
-        break;
-      case 'law_reference':
-        questions.add(_createLawReferenceQuestion(id, title, category, lawName, lawCode,
-          section, plainExplanation, difficulty, points));
-        break;
-      case 'scenario':
-        if (plainExplanation.length > 60) {
-          questions.add(_createScenarioQuestion(id, title, category, lawName, lawCode,
-            section, plainExplanation, difficulty, points));
-        }
-        break;
-      case 'true_false':
-        questions.add(_createTrueFalseQuestion(id, title, category, lawName, lawCode,
-          section, plainExplanation, difficulty, points));
-        break;
+  static List<GameQuestion> _createPatternFreeQuestionsFromLaw(Map<String, dynamic> law, int startId) {
+    final questions = <GameQuestion>[];
+    final String id = law['id']?.toString() ?? 'unknown';
+    final String title = law['title'] ?? 'Unknown Title';
+    final String category = law['category'] ?? 'General';
+    final String lawName = law['lawName'] ?? 'Unknown Law';
+    final String lawCode = law['lawCode'] ?? '';
+    final String section = law['section'] ?? '';
+    final String plainExplanation = law['plainExplanation'] ?? '';
+    
+    final difficulty = _determineOptimizedDifficulty(category, title, plainExplanation.length);
+    final points = difficulty == 'beginner' ? 5 : difficulty == 'intermediate' ? 10 : 15;
+    
+    // Always create a direct question, sometimes a second one
+    questions.add(_createPatternFreeDirectQuestion(id, title, category, lawName, lawCode, 
+      section, plainExplanation, difficulty, points));
+    
+    if (_random.nextDouble() < 0.4) { // 40% chance for second question
+      questions.add(_createAlternativeQuestion(id, title, category, lawName, lawCode,
+        section, plainExplanation, difficulty, points));
     }
+    
+    return questions;
   }
   
-  return questions;
-}
-
-static List<String> _selectQuestionTypesForDifficulty(String title, String explanation, String difficulty) {
-  final types = <String>[];
-  
-  // Always include a direct question
-  types.add('direct');
-  
-  // Add more questions based on difficulty
-  if (difficulty == 'beginner') {
-    // Beginners get simpler questions
-    final random = DateTime.now().millisecondsSinceEpoch % 3;
-    if (random == 0) types.add('true_false');
-  } else if (difficulty == 'intermediate') {
-    // Intermediate get mix
-    final random = DateTime.now().millisecondsSinceEpoch % 2;
-    if (random == 0) {
-      types.add('law_reference');
-    } else if (explanation.length > 100) {
-      types.add('scenario');
-    }
-  } else { // expert
-    // Experts get challenging questions
-    final random = DateTime.now().millisecondsSinceEpoch % 3;
-    if (random == 0) {
-      types.add('scenario');
-    } else if (random == 1) {
-      types.add('law_reference');
-    } else {
-      types.add('true_false');
-    }
-  }
-  
-  // Limit to max 2 questions
-  return types.take(2).toList();
-}
-  
-  static GameQuestion _createDirectQuestion(String id, String title, String category, String lawName, String lawCode, 
+  static GameQuestion _createPatternFreeDirectQuestion(String id, String title, String category, String lawName, String lawCode, 
       String section, String explanation, String difficulty, int points) {
     
     final questionTexts = [
       'What is the legal position on "$title" in Ghana?',
       'How does Ghanaian law address "$title"?',
+      'Which statement about "$title" is CORRECT?',
       'What does "$title" involve under Ghanaian law?',
-      'Which legal principle applies to "$title"?',
+      'How is "$title" regulated in Ghana?',
+      'Under what legal framework is "$title" addressed?',
+      'Which best describes the law regarding "$title"?',
     ];
     
-    final questionText = questionTexts[DateTime.now().millisecondsSinceEpoch % questionTexts.length];
-    
     return GameQuestion(
-      id: 'law_${id}_direct',
-      question: questionText,
-      options: _createVariedOptions(lawName, lawCode, category, true),
+      id: 'law_${id}_pattern_free',
+      question: questionTexts[_random.nextInt(questionTexts.length)],
+      options: _createPatternFreeOptions(lawName, lawCode, category, title, section, difficulty),
       explanation: explanation,
       lawReference: '$lawName $lawCode, $section',
       category: category,
@@ -147,39 +129,320 @@ static List<String> _selectQuestionTypesForDifficulty(String title, String expla
     );
   }
   
-  static GameQuestion _createLawReferenceQuestion(String id, String title, String category, String lawName, String lawCode,
+  static GameQuestion _createAlternativeQuestion(String id, String title, String category, String lawName, String lawCode,
       String section, String explanation, String difficulty, int points) {
     
+    final questionTypes = [
+      _createNotTrueQuestion,
+      _createScenarioQuestion,
+      _createTrueFalseQuestion,
+    ];
+    
+    final creator = questionTypes[_random.nextInt(questionTypes.length)];
+    return creator(id, title, category, lawName, lawCode, section, explanation, difficulty, points);
+  }
+  
+  // COMPLETELY PATTERN-FREE OPTION GENERATION
+  static List<QuestionOption> _createPatternFreeOptions(String lawName, String lawCode, String category, String title, String section, String difficulty) {
+    var options = <QuestionOption>[];
+    final correctLaw = lawCode.isNotEmpty ? '$lawName $lawCode' : lawName;
+    
+    // 1. CORRECT ANSWER - NO "GOVERNED BY" PATTERN
+    final correctAnswers = _getCorrectAnswerVariations(correctLaw, category, title, section);
+    final correctText = correctAnswers[_random.nextInt(correctAnswers.length)];
+    options.add(QuestionOption(text: correctText, isCorrect: true));
+    
+    // 2. TRAP ANSWERS - Plausible but wrong laws/sections
+    final trapAnswers = _getTrapAnswers(category, correctLaw, title, section, difficulty);
+    
+    // 3. GENERIC WRONG ANSWERS - Avoid "governed by" pattern here too
+    final genericWrong = _getGenericWrongAnswers(difficulty);
+    
+    // Combine all wrong answers
+    final allWrongAnswers = [...trapAnswers, ...genericWrong];
+    allWrongAnswers.shuffle();
+    
+    // Add 3 wrong options
+    for (int i = 0; i < 3 && i < allWrongAnswers.length; i++) {
+      options.add(QuestionOption(text: allWrongAnswers[i], isCorrect: false));
+    }
+    
+    // Ensure we have 4 options total
+    while (options.length < 4) {
+      options.add(QuestionOption(
+        text: 'The legal position depends on specific circumstances',
+        isCorrect: false
+      ));
+    }
+    
+    // CRITICAL: Remove any accidental "governed by" patterns from wrong answers
+    options = options.map((option) {
+      if (option.text.toLowerCase().contains('governed by') && !option.isCorrect) {
+        return QuestionOption(
+          text: option.text.replaceAll('governed by', 'addressed under').replaceAll('Governed by', 'Addressed under'),
+          isCorrect: option.isCorrect
+        );
+      }
+      return option;
+    }).toList();
+    
+    options.shuffle();
+    return options;
+  }
+  
+  // CORRECT ANSWER VARIATIONS - NO "GOVERNED BY"
+  static List<String> _getCorrectAnswerVariations(String correctLaw, String category, String title, String section) {
+    final variations = <String>[];
+    
+    // Clean, simple law references
+    variations.addAll([
+      correctLaw,
+      '$correctLaw, $section',
+      'Under $correctLaw',
+      '$correctLaw applies',
+      'Primarily $correctLaw',
+      '$correctLaw provides the framework',
+    ]);
+    
+    // Category-specific correct answer phrasing
+    switch (category.toLowerCase()) {
+      case 'rights & freedoms':
+      case 'justice & legal aid':
+        variations.addAll([
+          'Protected under $correctLaw',
+          '$correctLaw guarantees this right',
+          'A right established by $correctLaw',
+          '$correctLaw ensures access',
+          'Mandated by $correctLaw',
+        ]);
+        break;
+        
+      case 'family & personal':
+        variations.addAll([
+          'Regulated through $correctLaw',
+          '$correctLaw establishes procedures for this',
+          'Covered under $correctLaw provisions',
+          '$correctLaw specifies requirements',
+          'Addressed in $correctLaw',
+        ]);
+        break;
+        
+      case 'education':
+        variations.addAll([
+          'Education policy under $correctLaw',
+          '$correctLaw outlines educational rights',
+          'Governed by education provisions in $correctLaw',
+          '$correctLaw sets standards for this',
+          'Educational framework in $correctLaw',
+        ]);
+        break;
+        
+      case 'employment':
+        variations.addAll([
+          'Employment standards in $correctLaw',
+          '$correctLaw protects workers regarding this',
+          'Labor provisions under $correctLaw',
+          '$correctLaw establishes employment rights',
+          'Workplace regulations in $correctLaw',
+        ]);
+        break;
+    }
+    
+    // Add some with the actual law name only (no "governed by")
+    final simpleLawName = correctLaw.split(' ').take(3).join(' '); // Just "Right to Information Act"
+    variations.add(simpleLawName);
+    
+    return variations;
+  }
+  
+  // TRAP ANSWERS - plausible but wrong
+  static List<String> _getTrapAnswers(String category, String correctLaw, String title, String section, String difficulty) {
+    final traps = <String>[];
+    final wrongLaws = _getWrongLawsForCategory(category, correctLaw);
+    
+    // Wrong laws with different phrasing
+    for (final wrongLaw in wrongLaws.take(3)) {
+      final trapFormats = [
+        wrongLaw,
+        'Under $wrongLaw',
+        '$wrongLaw might apply',
+        'Sometimes addressed by $wrongLaw',
+        'Related to $wrongLaw',
+        '$wrongLaw covers similar issues',
+      ];
+      traps.add(trapFormats[_random.nextInt(trapFormats.length)]);
+    }
+    
+    // Wrong sections of the correct law
+    if (_commonLawSections.containsKey(correctLaw) && section.isNotEmpty) {
+      final sections = _commonLawSections[correctLaw]!;
+      final wrongSections = sections.where((s) => !s.contains(section)).toList();
+      if (wrongSections.isNotEmpty) {
+        final wrongSection = wrongSections[_random.nextInt(wrongSections.length)];
+        traps.add('$correctLaw, $wrongSection');
+      }
+    }
+    
+    // For expert difficulty, add more sophisticated traps
+    if (difficulty == 'expert') {
+      traps.addAll([
+        'Multiple laws apply with $correctLaw being primary',
+        '$correctLaw with ministerial exceptions',
+        'Generally under $correctLaw but with caveats',
+        '$correctLaw supplemented by regulations',
+      ]);
+    }
+    
+    return traps;
+  }
+  
+  // GENERIC WRONG ANSWERS - also pattern-free
+  static List<String> _getGenericWrongAnswers(String difficulty) {
+    final answers = <String>[];
+    
+    // Beginner/Intermediate wrong answers
+    answers.addAll([
+      'District Assembly bylaws',
+      'Customary law principles',
+      'Administrative guidelines only',
+      'Ministerial discretion',
+      'No specific legislation',
+      'Informal resolution methods',
+      'Community arbitration',
+    ]);
+    
+    // Expert wrong answers
+    if (difficulty == 'expert') {
+      answers.addAll([
+        'International conventions primarily',
+        'Case law precedents mainly',
+        'Constitutional interpretation required',
+        'Regulatory frameworks supplement gaps',
+        'Discretionary enforcement applies',
+      ]);
+    }
+    
+    // Avoid "governed by" in wrong answers too
+    return answers.map((answer) {
+      if (answer.toLowerCase().contains('governed')) {
+        return answer.replaceAll('governed', 'addressed');
+      }
+      return answer;
+    }).toList();
+  }
+  
+  static List<String> _getWrongLawsForCategory(String category, String correctLaw) {
+    final categoryLaws = <String, List<String>>{
+      'Rights & Freedoms': [
+        '1992 Constitution',
+        'Commission on Human Rights and Administrative Justice Act',
+        'Public Order Act',
+        'Criminal Offences Act, 1960 (Act 29)',
+        'Whistleblower Act, 2006 (Act 720)',
+      ],
+      'Justice & Legal Aid': [
+        'Courts Act, 1993 (Act 459)',
+        'Legal Aid Act, 2018 (Act 977)',
+        'Judicial Service Act, 1960 (CA.10)',
+        'Alternative Dispute Resolution Act, 2010 (Act 798)',
+      ],
+      'Family & Personal': [
+        'Marriage Act, 1884-1985 (CAP 127)',
+        'Intestate Succession Law (PNDC Law 111)',
+        'Domestic Violence Act, 2007 (Act 732)',
+        'Wills Act, 1971 (Act 360)',
+      ],
+      'Education': [
+        'Teaching Council Act, 2012 (Act 849)',
+        'Ghana Education Trust Fund Act, 2000 (Act 581)',
+        'Council for Technical and Vocational Education and Training Act',
+      ],
+      'Employment': [
+        'Social Security Act, 2010 (Act 766)',
+        'Workers\' Compensation Act, 1987 (PNDCL 187)',
+        'Labour Commission Act, 2003 (Act 652)',
+      ],
+    };
+    
+    final laws = categoryLaws[category] ?? [
+      '1992 Constitution',
+      'Criminal Offences Act, 1960 (Act 29)',
+      'Courts Act, 1993 (Act 459)',
+    ];
+    
+    return laws.where((law) => !law.contains(correctLaw.split(' ').first)).toList();
+  }
+  
+  static GameQuestion _createNotTrueQuestion(String id, String title, String category, String lawName, String lawCode,
+      String section, String explanation, String difficulty, int points) {
+    
+    final correctLaw = lawCode.isNotEmpty ? '$lawName $lawCode' : lawName;
+    
     return GameQuestion(
-      id: 'law_${id}_ref',
-      question: 'Which law or regulation covers "$title"?',
-      options: _createLawOptions(lawName, lawCode),
-      explanation: 'This is covered under $lawName $lawCode, $section. $explanation',
+      id: 'law_${id}_not_true',
+      question: 'Which statement about "$title" is NOT true?',
+      options: _createNotTrueOptions(correctLaw, category, title, explanation),
+      explanation: '$explanation The false statement tests understanding of $correctLaw.',
       lawReference: '$lawName $lawCode, $section',
       category: category,
-      difficulty: difficulty == 'beginner' ? 'intermediate' : difficulty,
-      points: points + 2,
+      difficulty: difficulty == 'beginner' ? 'intermediate' : 'expert',
+      points: points + 4,
     );
+  }
+  
+  static List<QuestionOption> _createNotTrueOptions(String correctLaw, String category, String title, String explanation) {
+    final List<QuestionOption> options = <QuestionOption>[];
+    
+    // The NOT TRUE statement (correct answer for this question type)
+    final falseStatements = [
+      'No legal framework exists for this issue',
+      'Only customary law applies to this matter',
+      'The law encourages this practice in some cases',
+      'There are no penalties for violating this',
+      'This is completely unregulated in Ghana',
+      'International law takes precedence here',
+      'District Assemblies have exclusive jurisdiction',
+    ];
+    
+    options.add(QuestionOption(
+      text: falseStatements[_random.nextInt(falseStatements.length)],
+      isCorrect: true
+    ));
+    
+    // Three TRUE statements
+    final trueStatements = [
+      'Ghanaian law addresses this issue',
+      'Legal remedies are available for this',
+      '$correctLaw provides relevant provisions',
+      'This is recognized within the legal system',
+      'Procedures exist to handle this matter',
+      'Authorities have jurisdiction over this',
+    ];
+    
+    trueStatements.shuffle();
+    for (int i = 0; i < 3 && i < trueStatements.length; i++) {
+      options.add(QuestionOption(text: trueStatements[i], isCorrect: false));
+    }
+    
+    options.shuffle();
+    return options;
   }
   
   static GameQuestion _createScenarioQuestion(String id, String title, String category, String lawName, String lawCode,
       String section, String explanation, String difficulty, int points) {
     
-    final scenarios = {
-      'Rights & Freedoms': 'If someone experiences $title, what legal recourse do they have?',
-      'Employment': 'An employee encounters $title at work. What are their rights?',
-      'Housing': 'A tenant faces $title from their landlord. What can they do?',
-      'Consumer Rights': 'A consumer experiences $title. How are they protected?',
-      'Business': 'A business deals with $title. What legal requirements apply?',
-    };
-    
-    final questionText = scenarios[category] ?? 'How would you handle a situation involving $title under Ghanaian law?';
+    final correctLaw = lawCode.isNotEmpty ? '$lawName $lawCode' : lawName;
+    final scenarios = [
+      'If someone encounters "$title", what should they do?',
+      'How should one respond to a situation involving "$title"?',
+      'What\'s the proper course of action when facing "$title"?',
+    ];
     
     return GameQuestion(
       id: 'law_${id}_scenario',
-      question: questionText,
-      options: _createScenarioOptions(lawName, category),
-      explanation: '$explanation This is governed by $lawName $lawCode, $section.',
+      question: scenarios[_random.nextInt(scenarios.length)],
+      options: _createScenarioOptions(correctLaw, category),
+      explanation: '$explanation Proper action involves referencing $correctLaw.',
       lawReference: '$lawName $lawCode, $section',
       category: category,
       difficulty: difficulty == 'beginner' ? 'intermediate' : 'expert',
@@ -187,212 +450,95 @@ static List<String> _selectQuestionTypesForDifficulty(String title, String expla
     );
   }
   
+  static List<QuestionOption> _createScenarioOptions(String correctLaw, String category) {
+    final List<QuestionOption> options = <QuestionOption>[];
+    
+    // Correct action
+    final correctActions = [
+      'Reference $correctLaw for guidance',
+      'Seek remedies under $correctLaw',
+      'Follow procedures in $correctLaw',
+      'Invoke protections in $correctLaw',
+      'Use $correctLaw as legal basis',
+    ];
+    
+    options.add(QuestionOption(
+      text: correctActions[_random.nextInt(correctActions.length)],
+      isCorrect: true
+    ));
+    
+    // Wrong actions
+    final wrongActions = [
+      'Take matters into your own hands',
+      'Ignore the issue completely',
+      'Rely only on informal resolution',
+      'Assume no legal recourse exists',
+      'Delay action indefinitely',
+      'Retaliate without following procedures',
+    ];
+    
+    wrongActions.shuffle();
+    for (int i = 0; i < 3 && i < wrongActions.length; i++) {
+      options.add(QuestionOption(text: wrongActions[i], isCorrect: false));
+    }
+    
+    options.shuffle();
+    return options;
+  }
+  
   static GameQuestion _createTrueFalseQuestion(String id, String title, String category, String lawName, String lawCode,
       String section, String explanation, String difficulty, int points) {
     
+    final correctLaw = lawCode.isNotEmpty ? '$lawName $lawCode' : lawName;
     final statements = [
-      '$title is not regulated under any Ghanaian law.',
-      'The law provides clear protection against $title.',
-      '$title is exclusively a matter for customary law.',
-      'There are no legal consequences for $title.',
-      '$title is protected under constitutional provisions.',
+      '$title is regulated under Ghanaian law',
+      'Legal protections exist against $title',
+      '$correctLaw addresses this issue',
+      'There are legal consequences for $title',
+      'This matter falls within legal jurisdiction',
     ];
     
-    final isTrue = explanation.toLowerCase().contains('protected') || 
-                   explanation.toLowerCase().contains('right') ||
-                   explanation.toLowerCase().contains('must') ||
-                   explanation.toLowerCase().contains('cannot');
-    
-    final statement = statements[DateTime.now().millisecondsSinceEpoch % statements.length];
+    final isTrue = _random.nextDouble() < 0.7; // 70% true for realism
     
     return GameQuestion(
       id: 'law_${id}_tf',
-      question: 'TRUE or FALSE: $statement',
+      question: 'TRUE or FALSE: ${statements[_random.nextInt(statements.length)]}',
       options: [
         QuestionOption(text: 'TRUE', isCorrect: isTrue),
         QuestionOption(text: 'FALSE', isCorrect: !isTrue),
       ],
-      explanation: '$explanation The correct answer is ${isTrue ? 'TRUE' : 'FALSE'} because $lawName $lawCode, $section addresses this.',
+      explanation: '$explanation The statement is ${isTrue ? 'TRUE' : 'FALSE'} according to $correctLaw.',
       lawReference: '$lawName $lawCode, $section',
       category: category,
-      difficulty: difficulty == 'beginner' ? 'intermediate' : 'expert',
+      difficulty: difficulty,
       points: points + 3,
     );
   }
   
-  static List<QuestionOption> _createVariedOptions(String lawName, String lawCode, String category, bool isCorrect) {
-    final options = <QuestionOption>[];
-    
-    if (isCorrect) {
-      options.add(QuestionOption(
-        text: 'It is governed by $lawName $lawCode under $category law',
-        isCorrect: true,
-      ));
-    }
-    
-    // Wrong options
-    final wrongOptions = [
-      'There is no specific legislation addressing this',
-      'It falls under customary law only',
-      'It is regulated by international treaties',
-      'The law was repealed and is no longer in force',
-      'It is covered by a different ministry/agency',
-      'Only administrative guidelines apply, not law',
-    ];
-    
-    // Add wrong options
-    wrongOptions.shuffle();
-    for (int i = 0; i < 3 && i < wrongOptions.length; i++) {
-      options.add(QuestionOption(text: wrongOptions[i], isCorrect: false));
-    }
-    
-    // Add the correct option if not already added
-    if (!isCorrect) {
-      options.add(QuestionOption(
-        text: 'It is governed by $lawName $lawCode under $category law',
-        isCorrect: true,
-      ));
-    }
-    
-    options.shuffle();
-    return options;
-  }
-  
-  static List<QuestionOption> _createLawOptions(String correctLawName, String correctLawCode) {
-    final correctOption = '$correctLawName $correctLawCode';
-    final options = <QuestionOption>[];
-    
-    // Common Ghanaian laws for wrong options
-    final wrongLaws = [
-      'Labour Act, 2003 (Act 651)',
-      'Companies Act, 2019 (Act 992)',
-      '1992 Constitution',
-      'Criminal Offences Act, 1960 (Act 29)',
-      'Rent Act, 1963 (Act 220)',
-      'Children\'s Act, 1998 (Act 560)',
-      'Data Protection Act, 2012 (Act 843)',
-      'Right to Information Act, 2019 (Act 989)',
-      'Consumer Protection Act, 2008 (Act 870)',
-      'Environmental Protection Agency Act, 1994 (Act 490)',
-      'Electronic Transactions Act, 2008 (Act 772)',
-      'National Health Insurance Act, 2012 (Act 852)',
-    ];
-    
-    // Remove correct law if present
-    final filteredLaws = wrongLaws.where((law) => law != correctOption).toList();
-    
-    // Add correct option
-    options.add(QuestionOption(text: correctOption, isCorrect: true));
-    
-    // Add 3 wrong options
-    filteredLaws.shuffle();
-    for (int i = 0; i < 3 && i < filteredLaws.length; i++) {
-      options.add(QuestionOption(text: filteredLaws[i], isCorrect: false));
-    }
-    
-    options.shuffle();
-    return options;
-  }
-  
-  static List<QuestionOption> _createScenarioOptions(String lawName, String category) {
-    final options = <QuestionOption>[];
-    
-    // Correct options based on category
-    final correctOptions = {
-      'Rights & Freedoms': 'Seek legal protection under $lawName',
-      'Employment': 'File a complaint with the Labour Commission under $lawName',
-      'Housing': 'Apply to the Rent Control Department under $lawName',
-      'Consumer Rights': 'Report to the Consumer Protection Commission under $lawName',
-      'Business': 'Comply with requirements under $lawName and seek legal advice',
-      'Health': 'Report to the relevant health authority under $lawName',
-      'Education': 'Follow procedures outlined in $lawName',
-    };
-    
-    final correctText = correctOptions[category] ?? 'Take appropriate action under $lawName';
-    options.add(QuestionOption(text: correctText, isCorrect: true));
-    
-    // Wrong options
-    final wrongOptions = [
-      'Ignore the issue as there is no legal remedy',
-      'Take immediate unilateral action without legal advice',
-      'Assume the matter is too minor for legal attention',
-      'Wait indefinitely without documentation',
-      'Rely solely on informal community resolution',
-      'Assume the law does not apply in this case',
-      'Take matters into your own hands outside the legal system',
-    ];
-    
-    wrongOptions.shuffle();
-    for (int i = 0; i < 3 && i < wrongOptions.length; i++) {
-      options.add(QuestionOption(text: wrongOptions[i], isCorrect: false));
-    }
-    
-    options.shuffle();
-    return options;
-  }
-  
   static String _determineOptimizedDifficulty(String category, String title, int explanationLength) {
-  // Convert to lowercase for easier matching
-  final lowerTitle = title.toLowerCase();
-  final lowerCategory = category.toLowerCase();
-  
-  // BEGINNER: Basic rights, simple concepts, common issues
-  final beginnerCategories = ['rights & freedoms', 'consumer rights', 'education', 'family & personal', 'health'];
-  final beginnerKeywords = [
-    'right to', 'access to', 'free', 'basic', 'simple', 'minimum', 
-    'protection', 'against', 'without', 'refusal to', 'allow', 'admit',
-    'permit', 'license', 'register', 'issue', 'provide', 'compensation'
-  ];
-  
-  // Check if category is beginner
-  if (beginnerCategories.contains(lowerCategory)) {
-    // Double-check title doesn't contain expert keywords
-    final expertKeywords = ['fraud', 'crime', 'laundering', 'mining', 'customs', 'cyber', 'terrorism'];
-    if (!expertKeywords.any((word) => lowerTitle.contains(word))) {
+    final lowerTitle = title.toLowerCase();
+    final lowerCategory = category.toLowerCase();
+    
+    // Simple categories for beginners
+    final beginnerCategories = ['rights & freedoms', 'consumer rights', 'education', 'family & personal'];
+    final beginnerKeywords = ['right to', 'access to', 'free', 'basic', 'simple', 'protection', 'against'];
+    
+    if (beginnerCategories.contains(lowerCategory) || 
+        beginnerKeywords.any((word) => lowerTitle.contains(word))) {
       return 'beginner';
     }
-  }
-  
-  // Check if title contains beginner keywords
-  if (beginnerKeywords.any((word) => lowerTitle.contains(word))) {
-    return 'beginner';
-  }
-  
-  // EXPERT: Complex, technical, serious crimes
-  final expertCategories = ['financial crime', 'customs', 'natural resources', 'technology & communication'];
-  final expertKeywords = [
-    'money laundering', 'fraud', 'cybercrime', 'terrorism financing', 'drug trafficking',
-    'illegal mining', 'galamsey', 'customs fraud', 'import violation', 'export violation',
-    'intellectual property infringement', 'patent', 'trademark', 'hacking', 'data breach'
-  ];
-  
-  // Check if category is expert
-  if (expertCategories.contains(lowerCategory)) {
-    return 'expert';
-  }
-  
-  // Check if title contains expert keywords
-  if (expertKeywords.any((word) => lowerTitle.contains(word))) {
-    return 'expert';
-  }
-  
-  // Check explanation length (long explanations often more complex)
-  if (explanationLength > 400) {
-    return 'expert';
-  }
-  
-  // INTERMEDIATE: Employment, business, housing, environment
-  final intermediateCategories = ['employment', 'business', 'housing', 'environment', 'property & housing', 'transport'];
-  
-  if (intermediateCategories.contains(lowerCategory)) {
+    
+    // Expert categories
+    final expertCategories = ['financial crime', 'customs', 'natural resources', 'technology & communication'];
+    final expertKeywords = ['fraud', 'laundering', 'cybercrime', 'terrorism', 'mining', 'customs'];
+    
+    if (expertCategories.contains(lowerCategory) || 
+        expertKeywords.any((word) => lowerTitle.contains(word)) ||
+        explanationLength > 400) {
+      return 'expert';
+    }
+    
+    // Default to intermediate
     return 'intermediate';
   }
-  
-  // DEFAULT: If nothing matches, use weighted random distribution
-  // 40% beginner, 30% intermediate, 30% expert for better balance
-  final random = DateTime.now().millisecondsSinceEpoch % 10;
-  if (random < 4) return 'beginner';
-  if (random < 7) return 'intermediate';
-  return 'expert';
-}
 }
